@@ -4,7 +4,7 @@ package dev.webfx.prototype.parser.code;
 import java.util.List;
 import java.io.*;
 
-public class A {
+public class A<T> {
 
 	private List l;
 	
@@ -18,5 +18,9 @@ public class A {
 	
 	public B test2(A a) {
 		return a.getB();
+	}
+	
+	public void test3(List<T> aList) throws IOException {
+		
 	}
 }

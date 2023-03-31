@@ -4,21 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ClassDefinition {
-	private AccessType accessType;
     private String className;
     private List<String> imports;
     private List<ClassDefinition> referencedClasses;
     
 	/**
-	 * @param accessType
 	 * @param className
 	 * @param imports
 	 */
-	public ClassDefinition(final AccessType accessType,
-			               final String className, 
+	public ClassDefinition(final String className, 
 			               final List<String> imports) {
 		this.className = className;
-		this.accessType = accessType;
 		this.imports = imports;
 		referencedClasses = new ArrayList<>();
 	}
@@ -28,13 +24,6 @@ public class ClassDefinition {
 	 */
 	public String getClassName() {
 		return className;
-	}
-
-	/**
-	 * @return the accessType
-	 */
-	public AccessType getAccessType() {
-		return accessType;
 	}
 
 	/**
