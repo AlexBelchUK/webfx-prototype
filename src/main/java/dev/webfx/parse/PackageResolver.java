@@ -117,64 +117,6 @@ public class PackageResolver {
 			}
 		}
 		
-		// Case where the class name contains '.' as it is
-	    // fully resolved to start with, need to determine the
-	    // package and class name part allowing for nested inner classes
-		// Try using CLI interface
-	    if (resolveCallback != null) {
-		    for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			    if (packageClassData.getResolved() == ResolvedType.UNKNOWN &&
-			    	packageClassData.getClassName().contains(".")) {
-		           
-			    	// Split into parts gradually build up string working
-			    	// forwards until a class found - the primary class
-			    	// ignore any inner class after that
-			    	final String packageClassParts[] = packageClassData.getClassName().split(".");
-			    	for (int i = 0; i < packageClassParts.length; i++) {    
-			    		String packageName = "";
-			    		for (int j = 0; j < i; j++) {
-			    		    packageClassName = packageClassParts[j];
-			    		    if (j < i) {
-			    		        packageName += ".";
-			    		    }
-			    	    }
-			    		className = packageClassParts[i];
-			    		
-			    		if (isPackageAndClassValid(packageName, className)) {
-			    			packageClassData.setPackageName(packageName);
-			    			packageClassData.setResolved(ResolvedType.SUCCESS);
-			    			break;
-			    		}
-			    	}
-			    }
-		    }
-	    }
-		
-		
-		// Resolve using CLI callback to get path name from 
-		// each item in import list with imported type of WILDCARD
-		// Cache filename for next call - it can be parsed also.
-	    if (resolveCallback != null) {
-		    for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			    if (packageClassData.getResolved() == ResolvedType.UNKNOWN) {		
-		            for (final ImportData importData : classDefinitionData.getImportList()) {
-		        	    if (importData.getImported() == ImportType.WILDCARD) {
-		        	        packageClassName = importData.getImportName() + "." + packageClassData.getClassName();
-			    	    	final String pathFile = resolveCallback.getPathFileForPackageClass(packageClassName); 	    
-		        	        if (pathFile != null && ! pathFile.isEmpty()) {
-		        	        	if (! pathFileList.contains(pathFile)) {
-		        	        		pathFileList.add(pathFile);
-		        	        	}
-		        	        	packageClassData.setPackageName(importData.getImportName());
-		        	        	packageClassData.setResolved(ResolvedType.SUCCESS);
-		        	        	break;
-		        	        }
-		        	    }
-		        	}
-		        }
-			}
-		}
-	    
 	    // Case where the class name contains '.' as it is
 	    // fully resolved to start with, need to determine the
 	    // package and class name part allowing for nested inner classes
@@ -221,6 +163,30 @@ public class PackageResolver {
 			    }
 		    }
 	    }
+		
+		// Resolve using CLI callback to get path name from 
+		// each item in import list with imported type of WILDCARD
+		// Cache filename for next call - it can be parsed also.
+	    if (resolveCallback != null) {
+		    for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
+			    if (packageClassData.getResolved() == ResolvedType.UNKNOWN) {		
+		            for (final ImportData importData : classDefinitionData.getImportList()) {
+		        	    if (importData.getImported() == ImportType.WILDCARD) {
+		        	        packageClassName = importData.getImportName() + "." + packageClassData.getClassName();
+			    	    	final String pathFile = resolveCallback.getPathFileForPackageClass(packageClassName); 	    
+		        	        if (pathFile != null && ! pathFile.isEmpty()) {
+		        	        	if (! pathFileList.contains(pathFile)) {
+		        	        		pathFileList.add(pathFile);
+		        	        	}
+		        	        	packageClassData.setPackageName(importData.getImportName());
+		        	        	packageClassData.setResolved(ResolvedType.SUCCESS);
+		        	        	break;
+		        	        }
+		        	    }
+		        	}
+		        }
+			}
+		}	    
 	}
 	
 	/**
