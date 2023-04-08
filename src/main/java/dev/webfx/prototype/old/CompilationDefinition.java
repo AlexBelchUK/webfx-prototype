@@ -1,10 +1,10 @@
-package dev.webfx.prototype.parser;
+package dev.webfx.prototype.old;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class CompilationDefinition {
-
+ 
 	private final Map<String, PackageDefinition> packageLookup;
 	
 	public CompilationDefinition() {
