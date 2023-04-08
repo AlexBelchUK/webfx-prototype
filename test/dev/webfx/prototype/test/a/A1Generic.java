@@ -7,7 +7,7 @@ import dev.webfx.prototype.test.b.B1;
 import dev.webfx.prototype.test.c.C1Implements;
 
 import java.io.*;
-
+ 
 public class A1Generic<T> {
 
 	private List<T> listField;

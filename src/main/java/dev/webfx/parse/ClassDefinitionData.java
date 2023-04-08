@@ -11,7 +11,7 @@ public class ClassDefinitionData {
     private final List<ImportData> importList;
     private final List<PackageClassData> packageClassList;
     
-	/**
+	/** 
 	 * @param pathFile
 	 * @param packageName
 	 * @param primaryClassName

@@ -1,7 +1,6 @@
 package dev.webfx.parse;
 
 public class Resolve {
-
 	public void resolve() {
 		
 		// Resolve using import list with imported type of CLASS_NAME

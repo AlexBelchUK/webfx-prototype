@@ -3,7 +3,7 @@ package dev.webfx.parse;
 public class PackageClassData {
     private final String packageName;
     private final String className;
-    private ResolvedType resolved;
+    private ResolvedType resolved; 
 	
     /**
 	 * @param packageName

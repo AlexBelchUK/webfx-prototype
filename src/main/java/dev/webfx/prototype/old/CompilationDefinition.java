@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CompilationDefinition {
-
+ 
 	private final Map<String, PackageDefinition> packageLookup;
 	
 	public CompilationDefinition() {

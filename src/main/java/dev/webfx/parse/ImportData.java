@@ -3,7 +3,7 @@ package dev.webfx.parse;
 public class ImportData {
     private final String importName;
     private final ImportType imported;
-    
+     
 	/**
 	 * @param importName
 	 * @param imported

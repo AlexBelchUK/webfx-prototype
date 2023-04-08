@@ -4,7 +4,7 @@ public class NewClassDefinition {
 	private String packageName;
 	private String className;
 	private NewResolvedType resolvedType;
-	
+	 
 	/**
 	 * Un resolved class constructor
 	 * 

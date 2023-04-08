@@ -2,7 +2,7 @@ package dev.webfx.prototype.old;
 
 import java.util.ArrayList;
 import java.util.List;
-
+ 
 public class PackageDefinition {
 	private final String packageName;
 	private final List<ClassDefinition> definedClasses;

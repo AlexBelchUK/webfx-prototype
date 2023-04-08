@@ -1,7 +1,7 @@
 package dev.webfx.prototype.test.a;
 
 import dev.webfx.prototype.test.b.B1;
-
+ 
 public class A4SamePackage {
 
 	private B1 b1Field = new B1();

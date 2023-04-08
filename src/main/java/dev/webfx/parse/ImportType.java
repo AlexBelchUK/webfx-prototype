@@ -1,5 +1,5 @@
 package dev.webfx.parse;
 
 public enum ImportType {
-    WILDCARD, CLASS_NAME
+    WILDCARD, CLASS_NAME 
 }
