@@ -1,6 +1,6 @@
 package dev.webfx.parse;
 
-public interface ParseCallback {
+public interface ResolveCallback {
 	 
 	/**
 	 * Return absolute path string for specified package and class name

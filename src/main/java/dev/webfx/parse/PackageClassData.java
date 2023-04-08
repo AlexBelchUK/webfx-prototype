@@ -1,8 +1,8 @@
 package dev.webfx.parse;
 
 public class PackageClassData {
-    private final String packageName;
-    private final String className;
+    private String packageName;
+    private String className;
     private ResolvedType resolved; 
 	
     /**
@@ -39,11 +39,25 @@ public class PackageClassData {
 	public String getPackageName() {
 		return packageName;
 	}
+	
+	/**
+	 * @param packageName the packageName to set
+	 */
+	public void setPackageName(String packageName) {
+		this.packageName = packageName;
+	}
 
 	/**
 	 * @return the className
 	 */
 	public String getClassName() {
 		return className;
+	}
+
+	/**
+	 * @param className the className to set
+	 */
+	public void setClassName(String className) {
+		this.className = className;
 	}
 }
