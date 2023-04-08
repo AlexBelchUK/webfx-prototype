@@ -1,4 +1,4 @@
-package dev.webfx.prototype.parser;
+package dev.webfx.prototype.old;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,28 +37,21 @@ import com.sun.source.util.JavacTask;
  * to obtain tokenised java statements and extract the
  * details we need from the statements
  */
-public class JavaCodeParser {
+public class NewJavaCodeParser {
 
-	private static int indent;
-	
-	/**
-	 * Constructor is private as all methods are static
-	 */
-	private JavaCodeParser() {
-		// Do nothing
-	}
+	private int indent;
 	
 	/**
 	 * Indent logging by 1 space
 	 */
-	private static void logIndent() {
+	private void logIndent() {
 		indent++;
 	}
 	
 	/**
 	 * Outdent logging by 1 space
 	 */
-	private static void logOutdent() {
+	private void logOutdent() {
 		indent--;
 	}
 	
@@ -67,7 +60,7 @@ public class JavaCodeParser {
 	 * 
 	 * @param text The text to log
 	 */
-	private static void logText(final String text) {
+	private void logText(final String text) {
 		final StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < indent; i++) {
 			sb.append("  ");
@@ -85,8 +78,8 @@ public class JavaCodeParser {
 	 * 
 	 * @throws IOException If file is not found
 	 */
-	public static CompilationDefinition parse (final List<File> files) throws IOException {
-		 final CompilationDefinition compilationDefinition = new CompilationDefinition();
+	public NewCompilationDefinition parse (final List<File> files) throws IOException {
+		 final NewCompilationDefinition compilationDefinition = new NewCompilationDefinition();
 		
 		 final JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
 		 final StandardJavaFileManager standardJavaFileManager = javaCompiler.getStandardFileManager(null, null, null);		 
@@ -137,28 +130,27 @@ public class JavaCodeParser {
 			 // 
 			 
 			 // Package name
-			 PackageDefinition packageDefinition = null;
+			 NewPackageDefinition packageDefinition = null;
 			 final PackageTree packageTree = compilationUnitTree.getPackage();
 			 if (packageTree != null) {
 				 final String packageName = packageTree.getPackageName().toString();
 		    	 logText ("parse: packageName=" + packageName);
 		    	 
 		    	 packageDefinition = compilationDefinition.getPackageLookup().computeIfAbsent(
-		    		packageName, packageNameKey -> new PackageDefinition(packageNameKey)); 
+		    		packageName, packageNameKey -> new NewPackageDefinition(packageNameKey)); 
 			 }
 			 
 			 // Imports used by the class definition below
-			 final List<String> importsForClass = new ArrayList<>();
 			 for (final ImportTree importTree : compilationUnitTree.getImports()) {
 		    	 final String importStr = importTree.getQualifiedIdentifier().toString();
 		    	 logText ("parse: import=" + importStr);
-		    	 importsForClass.add(importStr);
+		    	 packageDefinition.addImport(importStr);
 		     }
 			 
 			 // Defined classes
 			 for (final Tree treeDecls : compilationUnitTree.getTypeDecls()) {		    	 		    	 
 		    	 if (treeDecls instanceof ClassTree classTree) {
-		    	     processClassTree(classTree, importsForClass, packageDefinition);		    	     
+		    	     processClassTree(classTree, packageDefinition);		    	     
 		    	 }
 		    	 else {
 					 logText ("parse: skip=" + treeDecls.getKind() + " [" + treeDecls + "]");
@@ -173,26 +165,24 @@ public class JavaCodeParser {
 	 * Extract details from a tokenised class
 	 * 
 	 * @param classTree Class tree to navigate
-	 * @param importsForClass Imports for the class defined
 	 * @param packageDefinition The package definition to populate
 	 */
-    private static void processClassTree(final ClassTree classTree,
-    		                             final List<String> importsForClass,
-			                             final PackageDefinition packageDefinition) {
+    private void processClassTree(final ClassTree classTree,
+                                  final NewPackageDefinition packageDefinition) {
 		logIndent();
 		
     	final String className = classTree.getSimpleName().toString();
     	logText ("processClassTree: Add className=" + className);
 		
-    	final ClassDefinition classDefinition = new ClassDefinition(className, importsForClass);
-		packageDefinition.getDefinedClasses().add(classDefinition);
+    	final NewClassDefinition classDefinition = new NewClassDefinition(className);
+		packageDefinition.addDefinedClass(className);
     	
     	for (final Tree tree : classTree.getMembers()) {        	
             if (tree instanceof MethodTree methodTree) {
-		  	    processMethodTree(methodTree, classDefinition);
+		  	    processMethodTree(methodTree, packageDefinition);
 			}
             else if (tree instanceof VariableTree variableTree) {
-            	processVariableTree(variableTree, classDefinition);
+            	processVariableTree(variableTree, packageDefinition);
             }
         	else {
         	    logText ("processClassTree: Skip=" + tree.getKind() + " [" + tree + "]");
@@ -202,13 +192,13 @@ public class JavaCodeParser {
     	logOutdent();
    	}
 
-    private static void processVariableTree(final VariableTree variableTree, 
-    		                                final ClassDefinition classDefinition) {
+    private void processVariableTree(final VariableTree variableTree, 
+                                     final PackageDefinition packageDefinition) {
     	logIndent();
     	
     	final Tree tree = variableTree.getType();
     	if (tree instanceof IdentifierTree identifierTree) {
-    		processIdentifierTree(identifierTree, classDefinition.getReferencedClasses());
+    		processIdentifierTree(identifierTree, packageDefinition);
     	}
     	else {
     		logText("processVariableTree: Skip kind=" + tree.getKind() + "[" + tree + "]");
@@ -221,10 +211,10 @@ public class JavaCodeParser {
      * Process method within a class
      * 
      * @param methodTree The method tree holds methods for the class
-     * @param classDefinition The code class definition details
+     * @param packageDefinition The code class definition details
      */
-	private static void processMethodTree(final MethodTree methodTree, 
-                                          final ClassDefinition classDefinition) {
+	private void processMethodTree(final MethodTree methodTree, 
+                                   final PackageDefinition packageDefinition) {
 		logIndent();
 		
 		final String methodName = methodTree.getName().toString();
@@ -238,10 +228,10 @@ public class JavaCodeParser {
 		final Tree returnType = methodTree.getReturnType();
 		if (returnType != null) {
 		    if (returnType instanceof IdentifierTree identifierTree) {
-		    	processIdentifierTree(identifierTree, classDefinition.getReferencedClasses());
+		    	processIdentifierTree(identifierTree, packageDefinition);
 		    }
 		    else if (returnType instanceof PrimitiveTypeTree primitiveTypeTree) {
-		    	processPrimitiveTypeTree(primitiveTypeTree, classDefinition.getReferencedClasses());
+		    	processPrimitiveTypeTree(primitiveTypeTree, packageDefinition);
 		    }
 		    else {
 		    	logText("processMethodTree: Skip return kind=" + returnType.getKind() + " [" + returnType + "}");
@@ -255,7 +245,7 @@ public class JavaCodeParser {
 				    	
 		    final Tree variableType = variableTree.getType();
 		    if (variableType instanceof IdentifierTree identifierTree) {
-		    	processIdentifierTree(identifierTree, classDefinition.getReferencedClasses());
+		    	processIdentifierTree(identifierTree, packageDefinition);
 		    }
 		   	else {
 		   		logText ("processMethodTree: Skip param kind=" + variableType.getKind() + " [" + variableType + "]");
@@ -265,7 +255,7 @@ public class JavaCodeParser {
 		// Get throws for the method
 		for (final ExpressionTree expressionTree : methodTree.getThrows()) {
 		    if (expressionTree instanceof IdentifierTree identifierTree) {
-		    	processIdentifierTree(identifierTree, classDefinition.getReferencedClasses());
+		    	processIdentifierTree(identifierTree, packageDefinition);
 		    }
 		    else {
 		    	logText ("processMethodTree: Skip throws kind=" + expressionTree.getKind() + " [" + expressionTree + "]");
@@ -274,13 +264,13 @@ public class JavaCodeParser {
 		    
 		// Method body
 		final BlockTree blockTree = methodTree.getBody();
-		processBlockTree(blockTree, classDefinition.getReferencedClasses());
+		processBlockTree(blockTree, packageDefinition);
 				
 		logOutdent();
 	}
 	
-    private static void processPrimitiveTypeTree(final PrimitiveTypeTree primitiveTypeTree, 
-                                                 final List<ClassDefinition> referencedClasses) {
+    private void processPrimitiveTypeTree(final PrimitiveTypeTree primitiveTypeTree, 
+                                          final PackageDefinition packageDefinition) {
 	    logIndent();
 		
 	    final TypeKind typeKind = primitiveTypeTree.getPrimitiveTypeKind();
@@ -295,8 +285,8 @@ public class JavaCodeParser {
 	 * @param identifierTree Identifier tree
 	 * @param referencedClasses Referenced classes list
 	 */
-	private static void processIdentifierTree(final IdentifierTree identifierTree,
-			                                  final List<ClassDefinition> referencedClasses) {
+	private void processIdentifierTree(final IdentifierTree identifierTree,
+			                           final PackageDefinition packageDefinition) {
 		logIndent();
 		
 		final String className = identifierTree.getName().toString();
@@ -319,8 +309,8 @@ public class JavaCodeParser {
 	 * @param blockTree Block of code to process
 	 * @param referencedClasses Referenced classes list
 	 */
-	private static void processBlockTree(final BlockTree blockTree,
-			                             final List<ClassDefinition> referencedClasses) {
+	private void processBlockTree(final BlockTree blockTree,
+			                      final PackageDefinition packageDefinition) {
 		logIndent();
 		
 		logText ("processBlockTree: [" + blockTree + "]");
@@ -344,8 +334,8 @@ logText("processBlockTree: >>>> statementTree.kind=" + statementTree.getKind() +
 		logOutdent();
 	}
 	
-	private static void processExpressionStatementTree(final ExpressionStatementTree expressionStatementTree,
-                                                       final List<ClassDefinition> referencedClasses) {
+	private void processExpressionStatementTree(final ExpressionStatementTree expressionStatementTree,
+                                                final PackageDefinition packageDefinition) {
         logIndent();
 
         final ExpressionTree expressionTree = expressionStatementTree.getExpression();
@@ -360,8 +350,8 @@ logText("processBlockTree: >>>> statementTree.kind=" + statementTree.getKind() +
 	 * @param returnTree Return tree
 	 * @param referencedClasses Referenced classes list
 	 */
-	private static void processReturnTree(final ReturnTree returnTree,
-			                              final List<ClassDefinition> referencedClasses) {
+	private void processReturnTree(final ReturnTree returnTree,
+	                               final PackageDefinition packageDefinition) {
 		logIndent();
 		
 		logText ("processReturnTree: [" + returnTree + "]");
@@ -386,8 +376,8 @@ logText("processBlockTree: >>>> statementTree.kind=" + statementTree.getKind() +
 	 * @param newClassTree The new class tree
 	 * @param referencedClasses Referenced classes list
 	 */
-	private static void processNewClassTree(final NewClassTree newClassTree,
-			                                final List<ClassDefinition> referencedClasses) {
+	private void processNewClassTree(final NewClassTree newClassTree,
+	                                 final PackageDefinition packageDefinition) {
 		logIndent();
 		
 		logText ("processNewClassTree: [" + newClassTree + "]");
@@ -404,8 +394,8 @@ logText("processBlockTree: >>>> statementTree.kind=" + statementTree.getKind() +
 	 * @param expressionTree The expression tree
 	 * @param referencedClasses Referenced classes list
 	 */
-	private static void processExpressionTree(final ExpressionTree expressionTree, 
-		                                      final List<ClassDefinition> referencedClasses) {
+	private void processExpressionTree(final ExpressionTree expressionTree, 
+	                                   final PackageDefinition packageDefinition) {
 		logIndent();
 		
 		if (expressionTree instanceof IdentifierTree identifierTree) {
@@ -424,8 +414,8 @@ logText("processBlockTree: >>>> statementTree.kind=" + statementTree.getKind() +
 		logOutdent();
 	}
 	
-	private static void processMemberSelectTree(final MemberSelectTree memberSelectTree,
-                                                final List<ClassDefinition> referencedClasses) {
+	private void processMemberSelectTree(final MemberSelectTree memberSelectTree,
+	                                	 final PackageDefinition packageDefinition) {
         logIndent();
                              
         final ExpressionTree expressionTree = memberSelectTree.getExpression();
@@ -434,8 +424,8 @@ logText("processBlockTree: >>>> statementTree.kind=" + statementTree.getKind() +
         logOutdent();
 	}
 	
-	private static void processMethodInvocationTree(final MethodInvocationTree methodInvocationTree,
-                                                    final List<ClassDefinition> referencedClasses) {
+	private void processMethodInvocationTree(final MethodInvocationTree methodInvocationTree,
+	                                         final PackageDefinition packageDefinition) {
         logIndent();
 
         final ExpressionTree expressionTree = methodInvocationTree.getMethodSelect();
@@ -458,12 +448,23 @@ logText("processBlockTree: >>>> statementTree.kind=" + statementTree.getKind() +
 	public static void main(final String[] args) throws IOException {		
 		final List<File> files = new ArrayList<>();
 		
-		files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\parser\\code\\A.java"));
-		files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\parser\\code\\B.java"));
-		files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\parser\\code\\C.java"));
+		files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\a\\A1Generic.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\a\\A2SamePackage.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\a\\A3VarArgs.java"));		
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\b\\B1.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\b\\B2Record.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\b\\B3Enum.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\c\\C1Implements.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\c\\C2Interface.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\c\\C3Annotation.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\c\\C4Abstract.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\c\\C5Extends.java"));
+	//	files.add(new File("C:\\ab_webfx\\webfx-prototype\\src\\main\\java\\dev\\webfx\\prototype\\test\\c\\C6BasicClass.java"));
+		
 		
 		logText("--------Parsing--------");
-		final CompilationDefinition compilationDefinition = JavaCodeParser.parse(files);
+		final CompilationDefinition compilationDefinition = new NewJavaCodeParser();
+		.parse(files);
 		logText("-----------------------");
 		
 		logText("--------Results--------");

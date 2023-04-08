@@ -1,0 +1,16 @@
+package dev.webfx.prototype.test.a;
+
+import dev.webfx.prototype.test.b.B1;
+
+public class A4SamePackage {
+
+	private B1 b1Field = new B1();
+	
+	public B1 getB1() {
+		var a5Var = new A5VarArgs();
+		a5Var.varArgMethod("test1", "test2", "test3");
+		
+		return b1Field;
+	}
+	
+}

@@ -1,4 +1,4 @@
-package dev.webfx.prototype.parser;
+package dev.webfx.prototype.old;
 
 import java.util.HashMap;
 import java.util.Map;
