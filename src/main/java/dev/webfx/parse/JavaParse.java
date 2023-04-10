@@ -2,7 +2,7 @@ package dev.webfx.parse;
 
 import java.util.List;
 
-public class JavaSourceParser {
+public class JavaParse {
 	
 	public List<ClassDefinitionData> parse(final List<String> pathFileList, 
 			                               final List<String> excludedImportList) {
