@@ -1,4 +1,4 @@
-package dev.webfx.prototype.test.c;
+package dev.webfx.test.c;
 
 public class C1Implements implements C2Interface {
  

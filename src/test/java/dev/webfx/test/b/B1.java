@@ -1,6 +1,6 @@
-package dev.webfx.prototype.test.b;
+package dev.webfx.test.b;
 
-import dev.webfx.prototype.test.c.C1Implements;
+import dev.webfx.test.c.C1Implements;
 
 public class B1 {
 	 

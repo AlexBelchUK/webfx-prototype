@@ -3,34 +3,35 @@ package dev.webfx.parse;
 public class PackageClassData {
     private String packageName;
     private String className;
-    private ResolvedType resolved; 
+    private ResolveState resolveState; 
 	
     /**
+     * Parameter constructor
+     * 
 	 * @param packageName
 	 * @param className
-	 * @param resolved
+	 * @param resolveState
 	 */
 	public PackageClassData(final String packageName, 
 			                final String className, 
-			                final ResolvedType resolved) {
-		super();
+			                final ResolveState resolveState) {
 		this.packageName = packageName;
 		this.className = className;
-		this.resolved = resolved;
+		this.resolveState = resolveState;
 	}
 
 	/**
-	 * @return the resolved
+	 * @return the resolveState
 	 */
-	public ResolvedType getResolved() {
-		return resolved;
+	public ResolveState getResolveState() {
+		return resolveState;
 	}
 
 	/**
-	 * @param resolved the resolved to set
+	 * @param resolveState the resolve state to set
 	 */
-	public void setResolved(final ResolvedType resolved) {
-		this.resolved = resolved;
+	public void setResolveState(final ResolveState resolveState) {
+		this.resolveState = resolveState;
 	}
 
 	/**
