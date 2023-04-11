@@ -2,16 +2,17 @@ package dev.webfx.parse;
 
 public class ImportData {
     private final String importName;
-    private final ImportType imported;
+    private final ImportType importType;
      
 	/**
+	 * Parameter constructor
+	 * 
 	 * @param importName
-	 * @param imported
+	 * @param importType
 	 */
-	public ImportData(final String importName, final ImportType imported) {
-		super();
+	public ImportData(final String importName, final ImportType importType) {
 		this.importName = importName;
-		this.imported = imported;
+		this.importType = importType;
 	}
 
 	/**
@@ -22,9 +23,9 @@ public class ImportData {
 	}
 	
 	/**
-	 * @return the imported
+	 * @return the import type
 	 */
-	public ImportType getImported() {
-		return imported;
+	public ImportType getImportType() {
+		return importType;
 	}
 }

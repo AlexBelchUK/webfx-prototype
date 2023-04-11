@@ -1,6 +1,6 @@
-package dev.webfx.prototype.test.a;
+package dev.webfx.test.a;
 
-import dev.webfx.prototype.test.b.B1;
+import dev.webfx.test.b.B1;
  
 public class A4SamePackage {
 

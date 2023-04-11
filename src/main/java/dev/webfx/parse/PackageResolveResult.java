@@ -5,6 +5,12 @@ public class PackageResolveResult {
 	private final boolean success;
 	private final String pathFile;
 	
+	/**
+	 * Parameter constructor
+	 * 
+	 * @param success
+	 * @param pathFile
+	 */
 	public PackageResolveResult(final boolean success,
 			                    final String pathFile) {
 		this.success = success;
