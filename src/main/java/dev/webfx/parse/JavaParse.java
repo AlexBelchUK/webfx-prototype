@@ -2,8 +2,6 @@ package dev.webfx.parse;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.lang.model.type.TypeKind;
 import javax.tools.JavaCompiler;
@@ -63,35 +61,39 @@ public class JavaParse {
 	}
 	
 	/**
-	 * Parse java files and extract the details that we need
+	 * Parse java file and extract the detail that we need
 	 * 
-	 * @param files The list of files to parse
+	 * @param pathFile The start path and file to parse
 	 * 
-	 * @return The details extracted from the java files
-	 * 
-	 * @throws IOException If file is not found
+	 * @return The details extracted from the java files or null for invalid file
 	 */
-	public List<ClassDefinitionData> parse(final List<File> pathFileList, 
-                                           final List<String> excludedImportList) throws IOException {
-
-	    final List<ClassDefinitionData> classDefinitionList = new ArrayList<>();
+	public ClassDefinitionData parse(final String pathFile) {
 		
 		final JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
 		final StandardJavaFileManager standardJavaFileManager = javaCompiler.getStandardFileManager(null, null, null);		 
-		final Iterable<? extends JavaFileObject> javaFileObjects = standardJavaFileManager.getJavaFileObjectsFromFiles(pathFileList);
+		final Iterable<? extends JavaFileObject> javaFileObjects = standardJavaFileManager.getJavaFileObjects(new File(pathFile));
 		final JavacTask javacTask = (JavacTask) javaCompiler.getTask(null, standardJavaFileManager, null, null, null, javaFileObjects);         
-		final Iterable<? extends CompilationUnitTree> compilationUnitTrees = javacTask.parse();
+		
+		Iterable<? extends CompilationUnitTree> compilationUnitTrees = null;
+		try {
+			compilationUnitTrees = javacTask.parse();
+		}
+		catch (final IOException ioe) {
+			logText ("parse[00]: IOException " + ioe.getMessage());
+			return null;
+		}
 		 
+		final ClassDefinitionData classDefinitionData = new ClassDefinitionData(pathFile);
 		for (final CompilationUnitTree compilationUnitTree : compilationUnitTrees) {
 		 	
-		    String packageName = null;	
 			final PackageTree packageTree = compilationUnitTree.getPackage();
 			if (packageTree != null) {
-			    packageName = packageTree.getPackageName().toString();
+			    final String packageName = packageTree.getPackageName().toString();
 		    	logText ("parse[01]: packageName=" + packageName);
+		    	classDefinitionData.setPackageName(packageName);
+		    	
 		    }
-			
-			final List<ImportData> importList = new ArrayList<>();
+
 			for (final ImportTree importTree : compilationUnitTree.getImports()) {
 		    	String importStr = importTree.getQualifiedIdentifier().toString();
 		    	logText ("parse[02]: import=" + importStr);
@@ -99,16 +101,13 @@ public class JavaParse {
 		    	int index = importStr.indexOf(".*");
 		    	if (index >= 0) {
 		    		importStr = importStr.substring(0, index);
-		    		importList.add(new ImportData(importStr, ImportType.WILDCARD));
+		    		classDefinitionData.getImportList().add(new ImportData(importStr, ImportType.WILDCARD));
 		    	}
 		    	else {
-		    	    importList.add(new ImportData(importStr, ImportType.CLASS_NAME));
+		    		classDefinitionData.getImportList().add(new ImportData(importStr, ImportType.CLASS_NAME));
 		    	}
 		    }
-	
-			final ClassDefinitionData classDefinitionData = new ClassDefinitionData(packageName, importList);
-		    classDefinitionList.add(classDefinitionData);
-			
+		    
 		    for (final Tree treeDecls : compilationUnitTree.getTypeDecls()) {		    	 		    	 
 		        if (treeDecls instanceof ClassTree classTree) {
 		            processClassTree(classTree, classDefinitionData);
@@ -119,7 +118,7 @@ public class JavaParse {
 		    }
 		}
 		
-		return classDefinitionList;
+		return classDefinitionData;
     }
 	
 	/**

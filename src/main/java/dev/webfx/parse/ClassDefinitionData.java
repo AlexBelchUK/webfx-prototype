@@ -1,11 +1,14 @@
 package dev.webfx.parse;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ClassDefinitionData {
 
-    private final String packageName;
-    private final List<ImportData> importList;
+	private final String pathFile;
+	
+    private String packageName;
+    private List<ImportData> importList;
     
     private String primaryClassName;
     private List<PackageClassData> packageClassList;
@@ -13,13 +16,26 @@ public class ClassDefinitionData {
 	/**
 	 * Parameter constructor
 	 *  
-	 * @param packageName
-	 * @param importList
+	 * @param pathFile
 	 */
-	public ClassDefinitionData(final String packageName, 
-			                   final List<ImportData> importList) {
+	public ClassDefinitionData(final String pathFile) {
+		this.pathFile = pathFile;
+		this.importList = new ArrayList<>();
+		this.packageClassList = new ArrayList<>();
+	}
+	
+	/**
+	 * @return Java path and file
+	 */
+	public String getPathFile() {
+		return pathFile;
+	}
+	
+	/**
+	 * @param packageName
+	 */
+	public void setPackageName(final String packageName) {
 		this.packageName = packageName;
-		this.importList = importList;
 	}
 	
 	/**
