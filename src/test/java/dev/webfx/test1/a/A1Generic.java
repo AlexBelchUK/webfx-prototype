@@ -1,10 +1,10 @@
 
-package dev.webfx.test.a;
+package dev.webfx.test1.a;
 
 import java.util.*;
 
-import dev.webfx.test.b.B1;
-import dev.webfx.test.c.C1Implements;
+import dev.webfx.test1.b.B1;
+import dev.webfx.test1.c.C1Implements;
 
 import java.io.*;
  
@@ -16,7 +16,7 @@ public class A1Generic<T> {
 	
 	private T t0Field;
 	
-	private dev.webfx.test.c.C6BasicClass c6Field;
+	private dev.webfx.test1.c.C6BasicClass c6Field;
 	
 	private class A3Inner {
 		private C1Implements c1Field;
@@ -56,8 +56,8 @@ public class A1Generic<T> {
 	    return t1Arg;
 	}
 	
-	public static dev.webfx.test.c.C6BasicClass staticMethod(A1Generic a1Arg, B1 b1Arg) {
-		return new dev.webfx.test.c.C6BasicClass();
+	public static dev.webfx.test1.c.C6BasicClass staticMethod(A1Generic a1Arg, B1 b1Arg) {
+		return new dev.webfx.test1.c.C6BasicClass();
 	}
 }
 

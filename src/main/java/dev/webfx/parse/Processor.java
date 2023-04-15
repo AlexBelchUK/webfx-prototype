@@ -2,6 +2,7 @@ package dev.webfx.parse;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 
@@ -75,7 +76,7 @@ public class Processor {
 	    
 	    for (final ClassDefinitionData classDefinitionData : classDefinitionList) {
 	    	for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-	    		if (packageClassData.getResolveState() == ResolveState.SUCCESS) {
+	    		if (packageClassData.isResolved()) {
 	    			
 	    			final String packageName = packageClassData.getPackageName();
 	    			if (! packageNameList.contains(packageName)) {
@@ -84,6 +85,9 @@ public class Processor {
 	    		}
 	    	}
 	    }
+	    
+	    // Sort in alphabetical order
+	    Collections.sort(packageNameList);
 	    
 	    return packageNameList;
 	}

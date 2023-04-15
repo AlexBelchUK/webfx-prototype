@@ -71,7 +71,7 @@ public class PackageResolve {
 			                                                             final List<String> pathFileList) {
 
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-		    if (packageClassData.getResolveState() == ResolveState.UNKNOWN &&
+		    if (! packageClassData.isResolved() &&
 		    	packageClassData.getClassName().contains(".")) {
 		           
 			    // Split into parts gradually build up string working
@@ -80,19 +80,16 @@ public class PackageResolve {
 			   	final String[] packageClassParts = packageClassData.getClassName().split(".");
 			   	for (int i = 0; i < packageClassParts.length; i++) {    
 		    		final String packageName = buildPackageNameFromParts(packageClassParts, i);
-			   		
-		    		final PackageResolveResult result = 
-		    			packageResolveCallback.onPackageReolveCallback(packageName, packageClassParts[i]);
+		    		final PackageResolveResult result = packageResolveCallback.onPackageReolveCallback(packageName, packageClassParts[i]);
 		    		if (result.isSuccess()) {
 		    			addUniquePathFileToList(result.getPathFile(), pathFileList);
 		    			
 			    		packageClassData.setPackageName(packageName);
 			    		
 			    		final String className = buildClassNameFromParts(packageClassParts, i);
-        	        	
         	        	packageClassData.setClassName(className);
-        	        	
-			    		packageClassData.setResolveState(ResolveState.SUCCESS);
+
+			    		packageClassData.setResolved(true);
 			    		break;
 			   		}
 			   	}
@@ -162,14 +159,14 @@ public class PackageResolve {
 	 */
 	private void resolvePackagesForClassNameUseClassNameImports(final ClassDefinitionData classDefinitionData) {
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			if (packageClassData.getResolveState() == ResolveState.UNKNOWN) {				
+			if (! packageClassData.isResolved()) {				
 				final String className = "." + packageClassData.getClassName();
 		        for (final ImportData importData : classDefinitionData.getImportList()) {
 			        if (importData.getImportType() == ImportType.CLASS_NAME &&
 			            importData.getImportName().endsWith(className)) {
 				        final int index = importData.getImportName().indexOf(className);
 				        packageClassData.setPackageName(importData.getImportName().substring(0,  index));
-				       	packageClassData.setResolveState(ResolveState.SUCCESS);
+				       	packageClassData.setResolved(true);
 				       	break;
 				    }
 		        }
@@ -190,7 +187,7 @@ public class PackageResolve {
 			                                                           final PackageResolveCallback packageResolveCallback,
 			                                                           final List<String> pathFileList) {
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			if (packageClassData.getResolveState() == ResolveState.UNKNOWN) {
+			if (! packageClassData.isResolved()) {
 				final String className = packageClassData.getClassName();
 		        for (final ImportData importData : classDefinitionData.getImportList()) {
 			        if (importData.getImportType() == ImportType.WILDCARD) {
@@ -199,7 +196,7 @@ public class PackageResolve {
 			    			addUniquePathFileToList(result.getPathFile(), pathFileList);
 			    		
 			            	packageClassData.setPackageName(importData.getImportName());
-				       	    packageClassData.setResolveState(ResolveState.SUCCESS);
+				       	    packageClassData.setResolved(true);
 				       	    break;
 			    		}
 			        }
@@ -216,10 +213,10 @@ public class PackageResolve {
 	private void resolvePackagesForClassNameUseClassDefinition(final ClassDefinitionData classDefinitionData) {
 		final String className = classDefinitionData.getPrimaryClassName();
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			if (packageClassData.getResolveState() == ResolveState.UNKNOWN &&
+			if (! packageClassData.isResolved() &&
 		        packageClassData.getClassName().equals(className)) {
 		        packageClassData.setPackageName(classDefinitionData.getPackageName());
-		        packageClassData.setResolveState(ResolveState.SUCCESS);
+		        packageClassData.setResolved(true);
 			}
 		}
 	}
@@ -231,12 +228,12 @@ public class PackageResolve {
 	 */
 	private void resolvePackagesForClassNameUseDefaultPackage(final ClassDefinitionData classDefinitionData) {
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			if (packageClassData.getResolveState() == ResolveState.UNKNOWN) {
+			if (! packageClassData.isResolved()) {
 				final String className = packageClassData.getClassName();
 				final PackageResolveResult result = resolvePackageOnClassPath(JAVA_LANG_PACKAGE_NAME, className);
 	    		if (result.isSuccess()) {
 	                packageClassData.setPackageName(JAVA_LANG_PACKAGE_NAME);
-				    packageClassData.setResolveState(ResolveState.SUCCESS);
+				    packageClassData.setResolved(true);
 		        }
 			}
 		}
@@ -248,10 +245,10 @@ public class PackageResolve {
 	 * @param packageName The package name
 	 * @param className The class name
 	 * 
-	 * @return resolve success is true if class exists, success is false if not
+	 * @return Package resolve result
 	 */
 	private PackageResolveResult resolvePackageOnClassPath(final String packageName,
-			                                               final String className) {
+	                                         final String className) {
 		
 		final String packageClassName = packageName + "." + className;
 		try {
