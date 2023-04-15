@@ -67,16 +67,24 @@ public class ClassDefinitionData {
 	}
 	
 	/**
+	 * Add unique class name to the package class list
+	 * 
+	 * @param className Class name / can sometimes have package name in also
+	 */
+	public void addClassNameToPackageClassList(final String className) {
+		for (final PackageClassData packageClassData : packageClassList) {	
+			if (packageClassData.getClassName().equals(className)) {
+				return;
+			}	
+		}
+		
+		packageClassList.add(new PackageClassData(null, className, false));
+	}
+	
+	/**
 	 * @return the packageClassList
 	 */
 	public List<PackageClassData> getPackageClassList() {
 		return packageClassList;
-	}
-
-	/**
-	 * @param packageClassList the packageClassList to set
-	 */
-	public void setPackageClassList(List<PackageClassData> packageClassList) {
-		this.packageClassList = packageClassList;
 	}
 }

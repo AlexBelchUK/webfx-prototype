@@ -1,16 +1,21 @@
 package dev.webfx.parse;
+import java.io.File;
 import java.io.IOException;
 
 public class JavaParseTest {
 	
+	/**
+	 * Test the java source parser
+	 * 
+	 * @throws IOException Thrown for invalid file
+	 */
 	public void runTest () throws IOException {
-		String file1 = "C:\\ab_webfx\\webfx-prototype\\src\\test\\java\\dev\\webfx\\test\\a\\A1Generic.java";
-	//	String file2 = "C:\\ab_webfx\\webfx-prototype\\src\\test\\java\\dev\\webfx\\test\\b\\B.java";
-	//	String file3 = "C:\\ab_webfx\\webfx-prototype\\src\\test\\java\\dev\\webfx\\test\\c\\C.java";
+		final String userDir = System.getProperty("user.dir");
+		final String fileA = userDir + "/src/test/java/dev/webfx/test1/a/A1Generic.java".replace('/', File.separatorChar);
 		
 		logText("--------Parsing--------");
 		final JavaParse javaParse = new JavaParse();
-		final ClassDefinitionData classDefinitionData = javaParse.parse(file1);
+		final ClassDefinitionData classDefinitionData = javaParse.parse(fileA);
 		logText("-----------------------");
 		
 		logText("--------Results--------");
@@ -22,10 +27,8 @@ public class JavaParseTest {
 	    }
 
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			logText("   packageName: " + packageClassData.getPackageName() + 
-					", className: " + packageClassData.getClassName() +
-			        ", resolvedState: " + packageClassData.getResolveState());
-		}	
+			logText("  className: " + packageClassData.getClassName());
+		}
 		logText("-----------------------");
 	}
 	

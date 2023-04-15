@@ -1,4 +1,4 @@
-package dev.webfx.test.c;
+package dev.webfx.test1.c;
 
 public class C6BasicClass {
  

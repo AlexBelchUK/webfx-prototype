@@ -1,4 +1,4 @@
-package dev.webfx.test.a;
+package dev.webfx.test1.a;
 
 public class A5VarArgs {
  

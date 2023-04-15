@@ -2,13 +2,15 @@ package dev.webfx.parse;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
-import javax.lang.model.type.TypeKind;
+import javax.lang.model.element.Modifier;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
+import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
@@ -19,8 +21,10 @@ import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.PackageTree;
+import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.PrimitiveTypeTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.StatementTree;
@@ -30,7 +34,20 @@ import com.sun.source.tree.VariableTree;
 import com.sun.source.util.JavacTask;
 
 public class JavaParse {
+	
+	private final JavaCompiler javaCompiler;
+	private final StandardJavaFileManager standardJavaFileManager;
+	
 	private int indent;
+	private boolean isDebug = false;
+	
+	/**
+	 * Create compiler and file manager instance
+	 */
+	public JavaParse() {
+		javaCompiler = ToolProvider.getSystemJavaCompiler();
+		standardJavaFileManager = javaCompiler.getStandardFileManager(null, null, null);
+	}
 	
 	/**
 	 * Indent logging by 1 space
@@ -47,11 +64,34 @@ public class JavaParse {
 	}
 	
 	/**
+	 * Log information
+	 * 
+	 * @param text
+	 */
+	private void logInfo(final String text) {
+		logText(text);
+	}
+	
+	/**
+	 * Log debug
+	 * 
+	 * @param text
+	 */
+	private void logDebug(final String text) {
+		if (isDebug) {
+		    logText(text);
+		}
+	}
+	
+	/**
 	 * Log text with indent spaces
 	 * 
 	 * @param text The text to log
 	 */
 	private void logText(final String text) {
+		if (text.isBlank()) {
+			return;
+		}
 		final StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < indent; i++) {
 			sb.append("  ");
@@ -68,35 +108,38 @@ public class JavaParse {
 	 * @return The details extracted from the java files or null for invalid file
 	 */
 	public ClassDefinitionData parse(final String pathFile) {
+		logIndent();
 		
-		final JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
-		final StandardJavaFileManager standardJavaFileManager = javaCompiler.getStandardFileManager(null, null, null);		 
-		final Iterable<? extends JavaFileObject> javaFileObjects = standardJavaFileManager.getJavaFileObjects(new File(pathFile));
-		final JavacTask javacTask = (JavacTask) javaCompiler.getTask(null, standardJavaFileManager, null, null, null, javaFileObjects);         
+		final Iterable<? extends JavaFileObject> javaFileObjects = 
+			standardJavaFileManager.getJavaFileObjects(new File(pathFile));
+		final JavacTask javacTask = (JavacTask) 
+			javaCompiler.getTask(null, standardJavaFileManager, null, null, null, javaFileObjects);         
 		
 		Iterable<? extends CompilationUnitTree> compilationUnitTrees = null;
 		try {
 			compilationUnitTrees = javacTask.parse();
 		}
 		catch (final IOException ioe) {
-			logText ("parse[00]: IOException " + ioe.getMessage());
+			logInfo ("parse: IOException " + ioe.getMessage());
+			logOutdent();
 			return null;
 		}
-		 
+		
+		logInfo ("parse: pathFile=" + pathFile);
+		
 		final ClassDefinitionData classDefinitionData = new ClassDefinitionData(pathFile);
 		for (final CompilationUnitTree compilationUnitTree : compilationUnitTrees) {
 		 	
 			final PackageTree packageTree = compilationUnitTree.getPackage();
 			if (packageTree != null) {
 			    final String packageName = packageTree.getPackageName().toString();
-		    	logText ("parse[01]: packageName=" + packageName);
+		    	logInfo ("parse: packageName=" + packageName);
 		    	classDefinitionData.setPackageName(packageName);
-		    	
 		    }
 
 			for (final ImportTree importTree : compilationUnitTree.getImports()) {
 		    	String importStr = importTree.getQualifiedIdentifier().toString();
-		    	logText ("parse[02]: import=" + importStr);
+		    	logInfo ("parse: import=" + importStr);
 		    	
 		    	int index = importStr.indexOf(".*");
 		    	if (index >= 0) {
@@ -110,13 +153,15 @@ public class JavaParse {
 		    
 		    for (final Tree treeDecls : compilationUnitTree.getTypeDecls()) {		    	 		    	 
 		        if (treeDecls instanceof ClassTree classTree) {
-		            processClassTree(classTree, classDefinitionData);
+		            processClassTree(classTree, false,classDefinitionData);
 		    	}
 		    	else {
-				    logText ("parse[03]: skip=" + treeDecls.getKind() + " [" + treeDecls + "]");
+				    logInfo ("parse: Skip=" + treeDecls.getKind() + " [" + treeDecls + "]");
 				}
 		    }
 		}
+		
+		logOutdent();
 		
 		return classDefinitionData;
     }
@@ -125,17 +170,29 @@ public class JavaParse {
 	 * Extract class details from a tokenised class
 	 * 
 	 * @param classTree Class tree to navigate
+	 * @param isInnerClass True if inner class
 	 * @param classDefinitionData Class definition data
 	 */
     private void processClassTree(final ClassTree classTree,
+    		                      final boolean isInnerClass,
                                   final ClassDefinitionData classDefinitionData) {
 		logIndent();
 		
+		logDebug("processClassTree: " + classTree.getKind() + " [" + classTree + "]");
+		
     	final String className = classTree.getSimpleName().toString();
 
-// @TODO - check if only class defined (or if several the public one)
-    	classDefinitionData.setPrimaryClassName(className);
-    	logText ("processClassTree[01]: Add className=" + className);
+    	// Primary class name is either the public class, however
+    	// if then there is no public class use the package level class
+    	// inner classes are ignored
+    	if (! isInnerClass && 
+    		classDefinitionData.getPrimaryClassName() == null ||
+    		isPublic(classTree.getModifiers())) {	
+    	    classDefinitionData.setPrimaryClassName(className);
+        	logInfo ("processClassTree: primaryClassName=" + className);
+        }
+    
+    	logInfo ("processClassTree: Add className=" + className);
 		
     	for (final Tree tree : classTree.getMembers()) {        	
             if (tree instanceof MethodTree methodTree) {
@@ -144,8 +201,11 @@ public class JavaParse {
             else if (tree instanceof VariableTree variableTree) {
             	processVariableTree(variableTree, classDefinitionData);
             }
+            else if (tree instanceof ClassTree innerClassTree) {          	
+            	processClassTree(innerClassTree, true, classDefinitionData);
+            }
         	else {
-        	    logText ("processClassTree[02]: Skip=" + tree.getKind() + " [" + tree + "]");
+        	    logInfo ("processClassTree: Skip=" + tree.getKind() + " [" + tree + "]");
         	}
 		}
 
@@ -153,7 +213,28 @@ public class JavaParse {
    	}
     
     /**
+     * Test if the class is a public class
      * 
+     * @param modifiersTree The modifiers associated with element
+     * 
+     * @return True if public, false if not
+     */
+    private boolean isPublic (final ModifiersTree modifiersTree) {
+    	logIndent();
+    	
+    	boolean result = false;
+        if (modifiersTree != null) {
+    	    final Set<Modifier> modifiers = modifiersTree.getFlags();
+    	    result = modifiers.contains(Modifier.PUBLIC);
+        }
+        
+        logDebug("isPublic: [" + modifiersTree + "]");
+        
+        logOutdent();
+        return result;
+    }
+
+    /**
      * @param variableTree
      * @param classDefinitionData
      */
@@ -161,13 +242,40 @@ public class JavaParse {
                                      final ClassDefinitionData classDefinitionData) {
         logIndent();
 
+        logDebug("processVariableTree: " + variableTree.getKind() + " [" + variableTree + "]");
+        
         final Tree tree = variableTree.getType();
         if (tree instanceof IdentifierTree identifierTree) {
             processIdentifierTree(identifierTree, classDefinitionData);
         }
-        else {
-            logText("processVariableTree[01]: Skip kind=" + tree.getKind() + "[" + tree + "]");
+        else if (tree instanceof MemberSelectTree memberSelectTree) {
+        	processMemberSelectTree(memberSelectTree, classDefinitionData);
         }
+        else if (tree instanceof ParameterizedTypeTree parameterizedTypeTree) {
+        	processParameterizedTypeTree(parameterizedTypeTree, classDefinitionData);
+        }
+        else {
+            logInfo("processVariableTree: Skip kind=" + tree.getKind() + "[" + tree + "]");
+        }
+
+        logOutdent();
+    }
+    
+    /**
+     * @param parameterizedTypeTree
+     * @param classDefinitionData
+     */
+    private void processParameterizedTypeTree(final ParameterizedTypeTree parameterizedTypeTree, 
+    		                                  final ClassDefinitionData classDefinitionData) {
+    	logIndent();
+
+    	logDebug("processParameterizedTypeTree: " + parameterizedTypeTree.getKind() + " [" + parameterizedTypeTree + "]");
+    	
+        final Tree tree = parameterizedTypeTree.getType();
+        final String className =  tree.toString();
+        logInfo ("processParameterizedTypeTree: Add className=" + className);
+
+        classDefinitionData.addClassNameToPackageClassList(className);
 
         logOutdent();
     }
@@ -182,11 +290,13 @@ public class JavaParse {
                                    final ClassDefinitionData classDefinitionData) {
         logIndent();
 
+        logDebug("processMethodTree: " + methodTree.getKind() + " [" + methodTree + "]");
+ 
         final String methodName = methodTree.getName().toString();
-        logText ("processMethodTree[01]: Processing methodName=" + methodName);
+        logInfo ("processMethodTree: Processing methodName=" + methodName);
 
         for (TypeParameterTree typeParameterTree : methodTree.getTypeParameters()) {
-            logText ("processMethodTree[02]: Skip type parameter kind=" + typeParameterTree.getKind() + " [" + typeParameterTree + "]");
+            logInfo ("processMethodTree: Skip type parameter kind=" + typeParameterTree.getKind() + " [" + typeParameterTree + "]");
         }
 
         // Get the return type class
@@ -199,21 +309,21 @@ public class JavaParse {
                 processPrimitiveTypeTree(primitiveTypeTree, classDefinitionData);
             }
             else {
-                logText("processMethodTree[03]: Skip return kind=" + returnType.getKind() + " [" + returnType + "}");
+                logInfo("processMethodTree: Skip return kind=" + returnType.getKind() + " [" + returnType + "}");
             }
         }
 
         // Get the parameters for the method
         for (final VariableTree variableTree : methodTree.getParameters()) {
             final String variableName = variableTree.getName().toString();
-            logText ("processMethodTree[04]: Processing variableName=" + variableName);
+            logDebug ("processMethodTree: Processing variableName=" + variableName);
 
             final Tree variableType = variableTree.getType();
             if (variableType instanceof IdentifierTree identifierTree) {
                 processIdentifierTree(identifierTree, classDefinitionData);
             }
             else {
-                logText ("processMethodTree[05]: Skip param kind=" + variableType.getKind() + " [" + variableType + "]");
+                logInfo ("processMethodTree: Skip param kind=" + variableType.getKind() + " [" + variableType + "]");
             }
         }
 
@@ -223,7 +333,7 @@ public class JavaParse {
                 processIdentifierTree(identifierTree, classDefinitionData);
             }
             else {
-               logText ("processMethodTree[06]: Skip throws kind=" + expressionTree.getKind() + " [" + expressionTree + "]");
+               logInfo ("processMethodTree: Skip throws kind=" + expressionTree.getKind() + " [" + expressionTree + "]");
             }
         }
 
@@ -235,16 +345,14 @@ public class JavaParse {
     }
 
     /**
-     * 
      * @param primitiveTypeTree
      * @param classDefinitionData
      */
     private void processPrimitiveTypeTree(final PrimitiveTypeTree primitiveTypeTree, 
                                           final ClassDefinitionData classDefinitionData) {
         logIndent();
-
-        final TypeKind typeKind = primitiveTypeTree.getPrimitiveTypeKind();
-        logText("processPrimitiveTypeTree[01]: Typekind=" + typeKind);
+        
+        logDebug("processPrimitiveTypeTree: " + primitiveTypeTree.getKind() + " [" + primitiveTypeTree + "]");
 
         logOutdent();
     }
@@ -259,13 +367,13 @@ public class JavaParse {
                                        final ClassDefinitionData classDefinitionData) {
         logIndent();
 
+        logDebug("processIdentifierTree: " + identifierTree.getKind() + " [" + identifierTree + "]");
+ 
         final String className = identifierTree.getName().toString();
+        logInfo ("processIdentifierTree: Add className=" + className);
 
-logText("processIdentifierTree: --> kind=" + identifierTree.getKind());
-logText ("processIdentifierTree: Add className=" + className);
-
-        classDefinitionData.getPackageClassList().add(new PackageClassData(null, className, ResolveState.UNKNOWN));
-       
+        classDefinitionData.addClassNameToPackageClassList(className);
+     
         logOutdent();
     }
 
@@ -279,19 +387,20 @@ logText ("processIdentifierTree: Add className=" + className);
                                   final ClassDefinitionData classDefinitionData) {
         logIndent();
 
-        logText ("processBlockTree[01]: [" + blockTree + "]");
+        logDebug ("processBlockTree: " + blockTree.getKind() + " [" + blockTree + "]");
 
         for (final StatementTree statementTree : blockTree.getStatements()) {
-            logText("processBlockTree[02]: >>>> statementTree.kind=" + statementTree.getKind() + " [" + statementTree + "]");
-   
-            if (statementTree instanceof ReturnTree returnTree) {
-                processReturnTree(returnTree, classDefinitionData);
-            }
-            else if (statementTree instanceof ExpressionStatementTree expressionStatementTree) {
+            if (statementTree instanceof ExpressionStatementTree expressionStatementTree) {
                 processExpressionStatementTree(expressionStatementTree, classDefinitionData);
             }
+            else if (statementTree instanceof ReturnTree returnTree) {
+                processReturnTree(returnTree, classDefinitionData);
+            }
+            else if (statementTree instanceof VariableTree variableTree) {
+                processVariableTree(variableTree, classDefinitionData);
+            }
             else {
-                logText ("processBlockTree[03]: Skip statement kind=" + statementTree.getKind() + " [" + statementTree + "]");
+                logInfo ("processBlockTree: Skip statement kind=" + statementTree.getKind() + " [" + statementTree + "]");
             }
         }
 
@@ -299,7 +408,6 @@ logText ("processIdentifierTree: Add className=" + className);
     }
 
     /**
-     * 
      * @param expressionStatementTree
      * @param classDefinitionData
      */
@@ -307,6 +415,8 @@ logText ("processIdentifierTree: Add className=" + className);
                                                 final ClassDefinitionData classDefinitionData) {
         logIndent();
 
+        logDebug("processExpressionStatementTree: " + expressionStatementTree.getKind() + " [" + expressionStatementTree + "]");
+        
         final ExpressionTree expressionTree = expressionStatementTree.getExpression();
         processExpressionTree(expressionTree, classDefinitionData);
 
@@ -323,17 +433,20 @@ logText ("processIdentifierTree: Add className=" + className);
                                    final ClassDefinitionData classDefinitionData) {
         logIndent();
 
-        logText ("processReturnTree[01]: [" + returnTree + "]");
+        logDebug ("processReturnTree: " + returnTree.getKind() + " [" + returnTree + "]");
 
-        final ExpressionTree expressionTree = returnTree.getExpression();		
-        if (expressionTree instanceof NewClassTree newClassTree) {
-            processNewClassTree(newClassTree, classDefinitionData);			
+        final ExpressionTree expressionTree = returnTree.getExpression();	
+        if (expressionTree instanceof IdentifierTree identifierTree) {
+            processIdentifierTree(identifierTree, classDefinitionData);    
         }
         else if (expressionTree instanceof MethodInvocationTree methodInvocationTree) {
             processMethodInvocationTree(methodInvocationTree, classDefinitionData);
         }
+        else if (expressionTree instanceof NewClassTree newClassTree) {
+            processNewClassTree(newClassTree, classDefinitionData);			
+        }
         else {
-            logText ("processReturnTree[02]: Skip expression kind=" + expressionTree.getKind() + " [" + expressionTree + "]");
+            logInfo ("processReturnTree: Skip expression kind=" + expressionTree.getKind() + " [" + expressionTree + "]");
         }
 
         logOutdent();
@@ -349,7 +462,7 @@ logText ("processIdentifierTree: Add className=" + className);
                                      final ClassDefinitionData classDefinitionData) {
         logIndent();
 
-        logText ("processNewClassTree[01]: [" + newClassTree + "]");
+        logDebug ("processNewClassTree: " + newClassTree.getKind() + " [" + newClassTree + "]");
 
         final ExpressionTree expressionTree = newClassTree.getIdentifier();
         processExpressionTree(expressionTree, classDefinitionData);
@@ -367,7 +480,12 @@ logText ("processIdentifierTree: Add className=" + className);
                                        final ClassDefinitionData classDefinitionData) {
         logIndent();
 
-        if (expressionTree instanceof IdentifierTree identifierTree) {
+logInfo("processExpressionTree: " + expressionTree.getKind() + " [" + expressionTree + "]");
+        
+        if (expressionTree instanceof AssignmentTree assignmentTree) {
+        	processAssignmentTree(assignmentTree, classDefinitionData);
+        }
+        else if (expressionTree instanceof IdentifierTree identifierTree) {
             processIdentifierTree(identifierTree, classDefinitionData);
         }
         else if (expressionTree instanceof MemberSelectTree memberSelectTree) {
@@ -376,15 +494,36 @@ logText ("processIdentifierTree: Add className=" + className);
         else if (expressionTree instanceof MethodInvocationTree methodInvocationTree) {
             processMethodInvocationTree(methodInvocationTree, classDefinitionData);
         }
+        else if (expressionTree instanceof NewClassTree newClassTree) {
+        	processNewClassTree(newClassTree, classDefinitionData);
+        }
+        else if (expressionTree instanceof ParameterizedTypeTree parameterizedTypeTree) {
+        	processParameterizedTypeTree(parameterizedTypeTree, classDefinitionData);
+        }
         else {
-            logText("processExpressionTree[01]: skip kind=" + expressionTree.getKind() + " [" + expressionTree + "]");
+            logInfo("processExpressionTree: skip kind=" + expressionTree.getKind() + " [" + expressionTree + "]");
         }
 
         logOutdent();
     }
 
+    /**
+     * @param assignmentTree
+     * @param classDefinitionData
+     */
+    private void processAssignmentTree(final AssignmentTree assignmentTree,
+    		                           final ClassDefinitionData classDefinitionData) {
+    	logIndent();
+    	
+    	logDebug("processAssignmentTree: " + assignmentTree + " [" + assignmentTree + "]");
+    	
+    	final ExpressionTree expressionTree = assignmentTree.getExpression();
+        processExpressionTree(expressionTree, classDefinitionData);
+    	
+    	logOutdent();
+    }
+    
    /**
-    * 
     * @param memberSelectTree
     * @param classDefinitionData
     */
@@ -392,14 +531,16 @@ logText ("processIdentifierTree: Add className=" + className);
                                          final ClassDefinitionData classDefinitionData) {
         logIndent();
 
-        final ExpressionTree expressionTree = memberSelectTree.getExpression();
-        processExpressionTree(expressionTree, classDefinitionData);
+        logDebug("processMemberSelectTree: " + memberSelectTree.getKind() + " [" + memberSelectTree + "]");
+
+        final String className = memberSelectTree.toString();
+        classDefinitionData.addClassNameToPackageClassList(className);
+        logInfo("processMemberSelectTree: Add className=" + className);
 
         logOutdent();
     }
 
     /**
-     *
      * @param methodInvocationTree
      * @param classDefinitionData
      */
@@ -407,6 +548,8 @@ logText ("processIdentifierTree: Add className=" + className);
                                              final ClassDefinitionData classDefinitionData) {
         logIndent();
 
+        logDebug("processMethodInvocationTree: " + methodInvocationTree.getKind() + " [" + methodInvocationTree + "]");
+        
         final ExpressionTree expressionTree = methodInvocationTree.getMethodSelect();
         processExpressionTree(expressionTree, classDefinitionData);
 

@@ -1,6 +1,6 @@
-package dev.webfx.test.c;
+package dev.webfx.test1.c;
 
-import dev.webfx.test.a.A1Generic;
+import dev.webfx.test1.a.A1Generic;
 
 public class C5Extends extends C4Abstract {
   
