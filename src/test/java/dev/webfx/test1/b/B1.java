@@ -2,6 +2,9 @@ package dev.webfx.test1.b;
 
 import dev.webfx.test1.c.C1Implements;
 
+/**
+ * @author Alexander Belch
+ */
 public class B1 {
 	 
 	private B2Record b2Field;

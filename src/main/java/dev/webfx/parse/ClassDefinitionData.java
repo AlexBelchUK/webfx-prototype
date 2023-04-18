@@ -3,15 +3,21 @@ package dev.webfx.parse;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author Alexander Belch
+ */
 public class ClassDefinitionData {
 
 	private final String pathFile;
 	
     private String packageName;
-    private List<ImportData> importList;
+    private final List<ImportData> importList;
     
     private String primaryClassName;
-    private List<PackageClassData> packageClassList;
+    
+    private final List<String> genericList;
+    
+    private final List<PackageClassData> packageClassList;
     
 	/**
 	 * Parameter constructor
@@ -21,6 +27,7 @@ public class ClassDefinitionData {
 	public ClassDefinitionData(final String pathFile) {
 		this.pathFile = pathFile;
 		this.importList = new ArrayList<>();
+		this.genericList = new ArrayList<>();
 		this.packageClassList = new ArrayList<>();
 	}
 	
@@ -50,6 +57,24 @@ public class ClassDefinitionData {
 	 */
 	public List<ImportData> getImportList() {
 		return importList;
+	}
+	
+	/**
+	 * @return the generic name list
+	 */
+	public List<String> getGenericList() {
+		return genericList;
+	}
+	
+	/**
+	 * Test if class name is actually a generic type <T> label
+	 * 
+	 * @param className Class name to test
+	 * 
+	 * @return True if in the generic list, false if not
+	 */
+	public boolean isGenericType(final String className) {
+		return genericList.contains(className);
 	}
 	
 	/**

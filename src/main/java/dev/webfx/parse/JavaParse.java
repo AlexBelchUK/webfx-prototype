@@ -33,6 +33,9 @@ import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.JavacTask;
 
+/**
+ * @author Alexander Belch
+ */
 public class JavaParse {
 	
 	private final JavaCompiler javaCompiler;
@@ -194,6 +197,15 @@ public class JavaParse {
     
     	logInfo ("processClassTree: Add className=" + className);
 		
+    	for (final Tree tree : classTree.getTypeParameters()) {
+    		if (tree instanceof TypeParameterTree typeParameterTree) {
+    			processTypeParameterTree(typeParameterTree, classDefinitionData);
+    		}
+    		else {
+        	    logInfo ("processClassTree: [TypeParameter] Skip=" + tree.getKind() + " [" + tree + "]");
+        	}
+    	}
+  
     	for (final Tree tree : classTree.getMembers()) {        	
             if (tree instanceof MethodTree methodTree) {
 		  	    processMethodTree(methodTree, classDefinitionData);
@@ -205,12 +217,31 @@ public class JavaParse {
             	processClassTree(innerClassTree, true, classDefinitionData);
             }
         	else {
-        	    logInfo ("processClassTree: Skip=" + tree.getKind() + " [" + tree + "]");
+        	    logInfo ("processClassTree: [Member] Skip=" + tree.getKind() + " [" + tree + "]");
         	}
 		}
 
     	logOutdent();
    	}
+
+    /**
+     * Get generic type name e.g. <T> and store in list
+     * used to remove from class list any objects with type name T
+     * 
+     * @param typeParameterTree The type parameter tree
+     * @param classDefinitionData The class definition data to update
+     */
+    private void processTypeParameterTree(final TypeParameterTree typeParameterTree, 
+    		                              final ClassDefinitionData classDefinitionData) {
+        logIndent();
+		
+		logDebug("processTypeParameterTree: " + typeParameterTree.getKind() + " [" + typeParameterTree + "]");
+		
+		final String typeName = typeParameterTree.getName().toString();
+		classDefinitionData.getGenericList().add(typeName);
+		
+		logOutdent();
+    }
     
     /**
      * Test if the class is a public class
@@ -273,10 +304,9 @@ public class JavaParse {
     	
         final Tree tree = parameterizedTypeTree.getType();
         final String className =  tree.toString();
-        logInfo ("processParameterizedTypeTree: Add className=" + className);
-
-        classDefinitionData.addClassNameToPackageClassList(className);
-
+        
+        addClassNameToPackageClassList(className, classDefinitionData, "processParameterizedTypeTree");
+        
         logOutdent();
     }
 
@@ -304,6 +334,9 @@ public class JavaParse {
         if (returnType != null) {
             if (returnType instanceof IdentifierTree identifierTree) {
                 processIdentifierTree(identifierTree, classDefinitionData);
+            }
+            else if (returnType instanceof MemberSelectTree memberSelectTree) {
+                processMemberSelectTree(memberSelectTree, classDefinitionData);
             }
             else if (returnType instanceof PrimitiveTypeTree primitiveTypeTree) {
                 processPrimitiveTypeTree(primitiveTypeTree, classDefinitionData);
@@ -370,13 +403,36 @@ public class JavaParse {
         logDebug("processIdentifierTree: " + identifierTree.getKind() + " [" + identifierTree + "]");
  
         final String className = identifierTree.getName().toString();
-        logInfo ("processIdentifierTree: Add className=" + className);
-
-        classDefinitionData.addClassNameToPackageClassList(className);
-     
+        addClassNameToPackageClassList(className, classDefinitionData, "processIdentifierTree");
+        
         logOutdent();
     }
 
+    /**
+     * Test if we can add the class name to the class and package list
+     * - if it is a generic type skip it.
+     * 
+     * @param className The class to test and add
+     * @param classDefinitionData The class definition data
+     * @param methodName The calling method name
+     */
+    private void addClassNameToPackageClassList(final String className,
+    		                                    final ClassDefinitionData classDefinitionData,
+    		                                    final String methodName) {
+
+    	logIndent();
+    	
+        if (! classDefinitionData.isGenericType(className)) {
+            logInfo (methodName + "#: Add className=" + className);
+            classDefinitionData.addClassNameToPackageClassList(className);
+        }
+        else {
+        	logInfo (methodName + "#: Genric type - not adding className=" + className);
+        }
+        
+        logOutdent();
+    }
+    
    /**
     * Process the method block 
     * 
@@ -480,7 +536,7 @@ public class JavaParse {
                                        final ClassDefinitionData classDefinitionData) {
         logIndent();
 
-logInfo("processExpressionTree: " + expressionTree.getKind() + " [" + expressionTree + "]");
+        logInfo("processExpressionTree: " + expressionTree.getKind() + " [" + expressionTree + "]");
         
         if (expressionTree instanceof AssignmentTree assignmentTree) {
         	processAssignmentTree(assignmentTree, classDefinitionData);
@@ -534,9 +590,8 @@ logInfo("processExpressionTree: " + expressionTree.getKind() + " [" + expression
         logDebug("processMemberSelectTree: " + memberSelectTree.getKind() + " [" + memberSelectTree + "]");
 
         final String className = memberSelectTree.toString();
-        classDefinitionData.addClassNameToPackageClassList(className);
-        logInfo("processMemberSelectTree: Add className=" + className);
-
+        addClassNameToPackageClassList(className, classDefinitionData, "processMemberSelectTree");
+        
         logOutdent();
     }
 

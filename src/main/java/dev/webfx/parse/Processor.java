@@ -6,6 +6,9 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 
+/**
+ * @author Alexander Belch
+ */
 public class Processor {
 
 	private final JavaParse javaParse;
@@ -23,6 +26,18 @@ public class Processor {
 		
 		pathFileDeque = new ArrayDeque<>();
 		pathFileProcessedList = new ArrayList<>();
+	}
+	
+	/**
+	 * Log info text
+	 * 
+	 * @param text The text to log
+	 */
+	private void logInfo(final String text) {
+		if (text.isBlank()) {
+			return;
+		}
+		System.out.println (text);
 	}
 	
 	/**
@@ -82,6 +97,9 @@ public class Processor {
 	    			if (! packageNameList.contains(packageName)) {
 	    				packageNameList.add(packageName);
 	    			}
+	    		}
+	    		else {
+	    			logInfo ("process: Failed to resolve className= " + packageClassData.getClassName());
 	    		}
 	    	}
 	    }

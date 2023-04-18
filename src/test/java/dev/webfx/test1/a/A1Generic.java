@@ -8,6 +8,9 @@ import dev.webfx.test1.c.C1Implements;
 
 import java.io.*;
  
+/**
+ * @author Alexander Belch
+ */
 public class A1Generic<T> {
 
 	private List<T> listField;
