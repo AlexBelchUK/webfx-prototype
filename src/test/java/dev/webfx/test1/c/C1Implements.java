@@ -1,5 +1,8 @@
 package dev.webfx.test1.c;
 
+/**
+ * @author Alexander Belch
+ */
 public class C1Implements implements C2Interface {
  
 	@C3Annotation

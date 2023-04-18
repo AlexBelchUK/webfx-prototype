@@ -1,5 +1,8 @@
 package dev.webfx.parse;
 
+/**
+ * @author Alexander Belch
+ */
 public class ImportData {
     private final String importName;
     private final ImportType importType;

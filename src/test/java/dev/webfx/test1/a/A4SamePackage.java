@@ -2,6 +2,9 @@ package dev.webfx.test1.a;
 
 import dev.webfx.test1.b.B1;
  
+/**
+ * @author Alexander Belch
+ */
 public class A4SamePackage {
 
 	private B1 b1Field = new B1();

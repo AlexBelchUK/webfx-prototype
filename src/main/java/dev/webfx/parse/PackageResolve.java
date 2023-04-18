@@ -7,12 +7,27 @@ import java.util.List;
 //  b. Keep list of items still to resolve to reduce unnecessary loops
 //  c. JUnit tests to test each method 
 
+/**
+ * @author Alexander Belch
+ */
 public class PackageResolve {
 	
 	private static final String JAVA_LANG_PACKAGE_NAME = "java.lang";
 	
 	private PackageResolveCallback cliPackageResolveCallback;
 	
+	/**
+	 * Log info text
+	 * 
+	 * @param text The text to log
+	 */
+	private void logInfo(final String text) {
+		if (text.isBlank()) {
+			return;
+		}
+		System.out.println (text);
+	}
+
 	/**
 	 * Set resolve callback for CLI interface
 	 * 

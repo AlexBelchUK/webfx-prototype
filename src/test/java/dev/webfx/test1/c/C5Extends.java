@@ -2,6 +2,9 @@ package dev.webfx.test1.c;
 
 import dev.webfx.test1.a.A1Generic;
 
+/**
+ * @author Alexander Belch
+ */
 public class C5Extends extends C4Abstract {
   
 	@Override

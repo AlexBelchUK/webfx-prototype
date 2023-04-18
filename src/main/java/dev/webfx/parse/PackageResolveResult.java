@@ -1,5 +1,8 @@
 package dev.webfx.parse;
 
+/**
+ * @author Alexander Belch
+ */
 public class PackageResolveResult {
 	 
 	private final boolean success;

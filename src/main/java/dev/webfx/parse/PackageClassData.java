@@ -1,5 +1,8 @@
 package dev.webfx.parse;
 
+/**
+ * @author Alexander Belch
+ */
 public class PackageClassData {
     private String packageName;
     private String className;

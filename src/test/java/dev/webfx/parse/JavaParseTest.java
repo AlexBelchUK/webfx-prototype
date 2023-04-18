@@ -2,6 +2,9 @@ package dev.webfx.parse;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * @author Alexander Belch
+ */
 public class JavaParseTest {
 	
 	/**

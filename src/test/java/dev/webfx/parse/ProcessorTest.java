@@ -3,6 +3,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * @author Alexander Belch
+ */
 public class ProcessorTest implements PackageResolveCallback {
 	
 	private final String userDir;
