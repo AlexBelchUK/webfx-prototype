@@ -47,6 +47,8 @@ public class PackageResolve {
 	public void resolve(final ClassDefinitionData classDefinitionData,
 			            final List<String> pathFileList) {
 		
+		logInfo ("resolve: Called...");
+		
 		resolvePackagesForPackageAndClassNameUseExternalClasses(classDefinitionData,
 				                                                this::resolvePackageOnClassPath,
 				                                                pathFileList);
@@ -69,7 +71,9 @@ public class PackageResolve {
 	    	resolvePackagesForClassNameUseExternalWildcardImports(classDefinitionData,
                                                                   cliPackageResolveCallback,
                                                                   pathFileList);
-	    }	    
+	    }
+	    
+	    logInfo ("resolve: Done.");
 	}
 
 	/**
@@ -85,6 +89,8 @@ public class PackageResolve {
 			                                                             final PackageResolveCallback packageResolveCallback,
 			                                                             final List<String> pathFileList) {
 
+		logInfo ("resolvePackagesForPackageAndClassNameUseExternalClasses: Called...");
+		
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 		    if (! packageClassData.isResolved() &&
 		    	packageClassData.getClassName().contains(".")) {
@@ -96,7 +102,7 @@ public class PackageResolve {
 			   	for (int i = 0; i < packageClassParts.length; i++) {    
 		    		final String packageName = buildPackageNameFromParts(packageClassParts, i);
 		    		final PackageResolveResult result = packageResolveCallback.onPackageReolveCallback(packageName, packageClassParts[i]);
-		    		if (result.isSuccess()) {
+		    		if (result.isSuccess()) {    			
 		    			addUniquePathFileToList(result.getPathFile(), pathFileList);
 		    			
 			    		packageClassData.setPackageName(packageName);
@@ -105,11 +111,18 @@ public class PackageResolve {
         	        	packageClassData.setClassName(className);
 
 			    		packageClassData.setResolved(true);
+			    		
+			    		logInfo ("resolvePackagesForPackageAndClassNameUseExternalClasses: " + 
+			    		         "resolved=true, pathFile=" + result.getPathFile() + 
+			    		         ", packageName=" + packageName + ", className=" + className);
+		    			
 			    		break;
 			   		}
 			   	}
 		    }
 		}
+		
+		logInfo ("resolvePackagesForPackageAndClassNameUseExternalClasses: Done.");
 	}
 
 	/**
@@ -122,6 +135,8 @@ public class PackageResolve {
 			                             final List<String> pathFileList) {
 		if (pathFile != null && ! pathFile.isBlank() &&
 		    ! pathFileList.contains(pathFile)) {
+			
+			logInfo ("addUniquePathFileToList: Adding pathFile=" + pathFile);
 			pathFileList.add(pathFile);
 		}
 	}
@@ -143,6 +158,9 @@ public class PackageResolve {
 				className.append(".");
 			}
 		}
+		
+		logInfo ("buildClassNameFromParts: i=" + i +", return=" + className.toString());
+		
 		return className.toString();
 	}
 
@@ -162,6 +180,9 @@ public class PackageResolve {
 		        packageName.append(".");
 		    }
 		}
+		
+		logInfo("buildPackageNameFromParts: i=" + i + ", return=" + packageName.toString());
+		
 		return packageName.toString();
 	}
 	
@@ -173,6 +194,8 @@ public class PackageResolve {
 	 * @param classDefinitionData
 	 */
 	private void resolvePackagesForClassNameUseClassNameImports(final ClassDefinitionData classDefinitionData) {
+		logInfo("resolvePackagesForClassNameUseClassNameImports: Called...");
+		
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 			if (! packageClassData.isResolved()) {				
 				final String className = "." + packageClassData.getClassName();
@@ -180,13 +203,21 @@ public class PackageResolve {
 			        if (importData.getImportType() == ImportType.CLASS_NAME &&
 			            importData.getImportName().endsWith(className)) {
 				        final int index = importData.getImportName().indexOf(className);
-				        packageClassData.setPackageName(importData.getImportName().substring(0,  index));
+				        final String packageName = importData.getImportName().substring(0,  index);
+			
+				        packageClassData.setPackageName(packageName);
 				       	packageClassData.setResolved(true);
+				       	
+				       	logInfo("resolvePackagesForClassNameUseClassNameImports: " + 
+				       	        "resolved=true, packageName=" + packageName + 
+				       	        ", className=" + className);
 				       	break;
 				    }
 		        }
 			}
 		}
+		
+		logInfo("resolvePackagesForClassNameUseClassNameImports: Done.");
 	}
 
 	/**
@@ -201,6 +232,8 @@ public class PackageResolve {
 	private void resolvePackagesForClassNameUseExternalWildcardImports(final ClassDefinitionData classDefinitionData,
 			                                                           final PackageResolveCallback packageResolveCallback,
 			                                                           final List<String> pathFileList) {
+		logInfo ("resolvePackagesForClassNameUseExternalWildcardImports: Called...");
+		
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 			if (! packageClassData.isResolved()) {
 				final String className = packageClassData.getClassName();
@@ -209,15 +242,21 @@ public class PackageResolve {
 			        	final PackageResolveResult result = packageResolveCallback.onPackageReolveCallback(importData.getImportName(), className);
 			    		if (result.isSuccess()) {	
 			    			addUniquePathFileToList(result.getPathFile(), pathFileList);
-			    		
-			            	packageClassData.setPackageName(importData.getImportName());
+                            final String packageName = importData.getImportName();			    		
+			            	packageClassData.setPackageName(packageName);
 				       	    packageClassData.setResolved(true);
+				       	    
+				       	    logInfo ("resolvePackagesForClassNameUseExternalWildcardImports: " + 
+				       	             "resolved=true, packageName=" + packageName + 
+				       	             ", className=" + className);
 				       	    break;
 			    		}
 			        }
 		        }
 			}
 		}
+		
+		logInfo ("resolvePackagesForClassNameUseExternalWildcardImports: Done.");
 	}
 
 	/**
@@ -226,14 +265,22 @@ public class PackageResolve {
 	 * @param classDefinitionData
 	 */
 	private void resolvePackagesForClassNameUseClassDefinition(final ClassDefinitionData classDefinitionData) {
+		logInfo("resolvePackagesForClassNameUseClassDefinition: Called...");
+		
 		final String className = classDefinitionData.getPrimaryClassName();
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 			if (! packageClassData.isResolved() &&
 		        packageClassData.getClassName().equals(className)) {
 		        packageClassData.setPackageName(classDefinitionData.getPackageName());
 		        packageClassData.setResolved(true);
+		        
+		        logInfo("resolvePackagesForClassNameUseClassDefinition: " + 
+		                "resolved=true, packageName = " + classDefinitionData.getPackageName() +
+		                ", className=" + className);
 			}
 		}
+		
+		logInfo("resolvePackagesForClassNameUseClassDefinition: Done.");
 	}
 
 	/**
@@ -242,6 +289,8 @@ public class PackageResolve {
 	 * @param classDefinitionData
 	 */
 	private void resolvePackagesForClassNameUseDefaultPackage(final ClassDefinitionData classDefinitionData) {
+		logInfo("resolvePackagesForClassNameUseDefaultPackage: Called...");
+		
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 			if (! packageClassData.isResolved()) {
 				final String className = packageClassData.getClassName();
@@ -249,9 +298,15 @@ public class PackageResolve {
 	    		if (result.isSuccess()) {
 	                packageClassData.setPackageName(JAVA_LANG_PACKAGE_NAME);
 				    packageClassData.setResolved(true);
+				    
+				    logInfo("resolvePackagesForClassNameUseDefaultPackage: " + 
+				            "resolved=true, packageName=" + JAVA_LANG_PACKAGE_NAME + 
+				            ", className=" + className);
 		        }
 			}
 		}
+		
+		logInfo("resolvePackagesForClassNameUseDefaultPackage: Done.");
 	}
 
 	/**
@@ -263,17 +318,25 @@ public class PackageResolve {
 	 * @return Package resolve result
 	 */
 	private PackageResolveResult resolvePackageOnClassPath(final String packageName,
-	                                         final String className) {
+	                                                       final String className) {
+		
+		logInfo("resolvePackageOnClassPath: Called...");
 		
 		final String packageClassName = packageName + "." + className;
 		try {
 			if (Class.forName(packageClassName, false, getClass().getClassLoader()) != null) {
-				return new PackageResolveResult(true, null);
+				logInfo("resolvePackageOnClassPath: " + 
+			            "resolved=true packageName=" + packageName + 
+			            ", className=" + className);
+		        return new PackageResolveResult(true, null);
 			}
 		}
 		catch (final ClassNotFoundException cnfe) {
 			// Do nothing
 		}
+		
+		logInfo("resolvePackageOnClassPath: Done.");
+		
 		return new PackageResolveResult(false, null);
 	}
 }
