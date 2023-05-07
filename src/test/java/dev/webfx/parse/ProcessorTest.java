@@ -8,15 +8,19 @@ import java.util.List;
  */
 public class ProcessorTest implements PackageResolveCallback {
 	
+	private final Log log;
+	
 	private final String userDir;
 	
 	/**
 	 * Default constructor
 	 */
 	public ProcessorTest() {
+	    log = new Log();
+	    log.setLogLevel(LogType.INFO);
 		userDir = System.getProperty("user.dir");
 		
-		System.out.println ("user.dir= " + userDir);
+		log.info ("user.dir= " + userDir);
 	}
 	
 	/**
@@ -40,22 +44,13 @@ public class ProcessorTest implements PackageResolveCallback {
 				
 		final List<String> packageNameList = processor.process();
 		
-		logText("--------Results--------");
+		log.info("--------Results--------");
 		 
 	    for (final String packageName : packageNameList) {
-			logText(" packageName: " + packageName);
+	    	log.info(" packageName: " + packageName);
 	    }
 	
-		logText("-----------------------");
-	}
-	
-	/**
-	 * Log text to output
-	 * 
-	 * @param text Text to log
-	 */
-	private void logText(final String text) {
-		System.out.println(text);
+	    log.info("-----------------------");
 	}
 	
 	/**
@@ -83,7 +78,7 @@ public class ProcessorTest implements PackageResolveCallback {
 	 */
 	@Override
 	public PackageResolveResult onPackageReolveCallback(String packageName, String className) {
-		logText("onPackageReolveCallback: packageName=" + packageName + ", className=" + className);
+		log.info("onPackageReolveCallback: packageName=" + packageName + ", className=" + className);
 		
 		final String basePath = userDir + "/src/test/java/".replace('/', File.separatorChar);
 	    final String packagePath = packageName.replace('.', File.separatorChar);
