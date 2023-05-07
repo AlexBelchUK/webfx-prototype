@@ -10,6 +10,7 @@ import java.util.List;
  * @author Alexander Belch
  */
 public class Processor {
+	private final Log log;
 
 	private final JavaParse javaParse;
 	private final PackageResolve packageResolve;
@@ -21,23 +22,14 @@ public class Processor {
 	 * Create new processor
 	 */
 	public Processor() {
+		log = new Log();
+		log.setLogLevel(LogType.WARN);
+
 		javaParse = new JavaParse();
 		packageResolve = new PackageResolve();
 		
 		pathFileDeque = new ArrayDeque<>();
 		pathFileProcessedList = new ArrayList<>();
-	}
-	
-	/**
-	 * Log info text
-	 * 
-	 * @param text The text to log
-	 */
-	private void logInfo(final String text) {
-		if (text.isBlank()) {
-			return;
-		}
-		System.out.println (text);
 	}
 	
 	/**
@@ -99,7 +91,7 @@ public class Processor {
 	    			}
 	    		}
 	    		else {
-	    			logInfo ("process: Failed to resolve className= " + packageClassData.getClassName());
+	    			log.warn ("process: Failed to resolve className= " + packageClassData.getClassName());
 	    		}
 	    	}
 	    }

@@ -6,6 +6,15 @@ import java.io.IOException;
  * @author Alexander Belch
  */
 public class JavaParseTest {
+	private final Log log;
+	
+	/**
+	 * Constructor
+	 */
+	public JavaParseTest() {
+		log = new Log();
+		log.setLogLevel(LogType.INFO);
+	}
 	
 	/**
 	 * Test the java source parser
@@ -16,32 +25,23 @@ public class JavaParseTest {
 		final String userDir = System.getProperty("user.dir");
 		final String fileA = userDir + "/src/test/java/dev/webfx/test1/a/A1Generic.java".replace('/', File.separatorChar);
 		
-		logText("--------Parsing--------");
+		log.info("--------Parsing--------");
 		final JavaParse javaParse = new JavaParse();
 		final ClassDefinitionData classDefinitionData = javaParse.parse(fileA);
-		logText("-----------------------");
+		log.info("-----------------------");
 		
-		logText("--------Results--------");
-		logText("packageName: " + classDefinitionData.getPackageName());
-        logText("primaryClassName: " + classDefinitionData.getPrimaryClassName());
+		log.info("--------Results--------");
+		log.info("packageName: " + classDefinitionData.getPackageName());
+		log.info("primaryClassName: " + classDefinitionData.getPrimaryClassName());
 		 
 	    for (final ImportData importData : classDefinitionData.getImportList()) {
-	    	logText(" importType: " + importData.getImportType() + ", importName: " + importData.getImportName());
+	    	log.info(" importType: " + importData.getImportType() + ", importName: " + importData.getImportName());
 	    }
 
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			logText("  className: " + packageClassData.getClassName());
+			log.info("  className: " + packageClassData.getClassName());
 		}
-		logText("-----------------------");
-	}
-	
-	/**
-	 * Log text to output
-	 * 
-	 * @param text Text to log
-	 */
-	private void logText(final String text) {
-		System.out.println(text);
+		log.info("-----------------------");
 	}
 	
 	/**
