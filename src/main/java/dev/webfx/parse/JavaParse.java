@@ -164,7 +164,11 @@ public class JavaParse {
     	    classDefinitionData.setPrimaryClassName(className);
         	log.verbose ("processClassTree: primaryClassName=" + className);
         }
-    
+    	else {
+    		classDefinitionData.addClassNameToSecondaryClassNameList(className);
+    		log.verbose ("processClassTree: Add secondaryClassName=" + className);
+    	}
+
     	log.verbose ("processClassTree: Add className=" + className);
 		
     	for (final Tree tree : classTree.getTypeParameters()) {

@@ -1,4 +1,4 @@
-package dev.webfx.parse;
+ package dev.webfx.parse;
 
 import java.util.List;
 
@@ -54,7 +54,9 @@ public class PackageResolve {
 				                                              this::resolvePackageOnClassPath,
 				                                              pathFileList);
 		
-		resolvePackagesForClassNameUseClassDefinition(classDefinitionData);
+		resolvePackagesForPrimaryClassName(classDefinitionData);
+		
+		resolvePackagesForSecondaryClassNameList(classDefinitionData);
 		
 		resolvePackagesForClassNameUseDefaultPackage(classDefinitionData);
 		
@@ -280,12 +282,12 @@ public class PackageResolve {
 	}
 
 	/**
-	 * Resolve by testing main class name and package name in the class definition
+	 * Resolve by testing primary class name and package name in the class definition
 	 * 
 	 * @param classDefinitionData
 	 */
-	private void resolvePackagesForClassNameUseClassDefinition(final ClassDefinitionData classDefinitionData) {
-		log.verbose("resolvePackagesForClassNameUseClassDefinition: Called...");
+	private void resolvePackagesForPrimaryClassName(final ClassDefinitionData classDefinitionData) {
+		log.verbose("resolvePackagesForPrimaryClassName: Called...");
 		
 		final String className = classDefinitionData.getPrimaryClassName();
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
@@ -294,13 +296,39 @@ public class PackageResolve {
 		        packageClassData.setPackageName(classDefinitionData.getPackageName());
 		        packageClassData.setResolved(true);
 		        
-		        log.verbose("resolvePackagesForClassNameUseClassDefinition: " + 
+		        log.verbose("resolvePackagesForPrimaryClassName: " + 
 		                       "resolved=true, packageName = " + classDefinitionData.getPackageName() +
 		                       ", className=" + className);
 			}
 		}
 		
-		log.verbose("resolvePackagesForClassNameUseClassDefinition: Done.");
+		log.verbose("resolvePackagesForPrimaryClassName: Done.");
+	}
+	
+	/**
+	 * Resolve by testing main class name and package name in the class definition
+	 * 
+	 * @param classDefinitionData
+	 */
+	private void resolvePackagesForSecondaryClassNameList(final ClassDefinitionData classDefinitionData) {
+		log.verbose("resolvePackagesForSecondaryClassNameList: Called...");
+		
+		final List<String> classNameList = classDefinitionData.getSecondaryClassNameList();
+		for (final String className : classNameList) {
+		    for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
+			    if (! packageClassData.isResolved() &&
+		            packageClassData.getClassName().equals(className)) {
+		            packageClassData.setPackageName(classDefinitionData.getPackageName());
+		            packageClassData.setResolved(true);
+		        
+		            log.verbose("resolvePackagesForSecondaryClassNameList: " + 
+		                        "resolved=true, packageName = " + classDefinitionData.getPackageName() +
+		                        ", className=" + className);
+			    }
+		    }
+		}
+
+		log.verbose("resolvePackagesForSecondaryClassNameList: Done.");
 	}
 
 	/**
