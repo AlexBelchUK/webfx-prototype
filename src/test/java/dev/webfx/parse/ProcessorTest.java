@@ -30,17 +30,48 @@ public class ProcessorTest implements PackageResolveCallback {
 		final Processor processor = new Processor();
 		processor.setCliPackageResolveCallback(this);
 
-		final String fileA = userDir + "/src/test/java/dev/webfx/test1/a/A1Generic.java".replace('/', File.separatorChar);
-		processor.addFile(fileA);
+		// --------Results--------
+		// [Info]  packageName: dev.webfx.test1.a
+		// [Info]  packageName: dev.webfx.test1.b
+		// [Info]  packageName: dev.webfx.test1.c
+		// [Info]  packageName: java.io
+		// [Info]  packageName: java.lang
+		// [Info]  packageName: java.util
+		// [Info] -----------------------
+		// Passes OK
+		//final String test1FileA = userDir + "/src/test/java/dev/webfx/test1/a/A1Generic.java".replace('/', File.separatorChar);
+		//processor.addFile(test1FileA);
 		
-		//final String fileB = userDir + "/src/test/java/dev/webfx/test1/b/B1.java".replace('/', File.separatorChar);
-		//processor.addFile(fileB);
+		// [Info] --------Results--------
+		// [Info]  packageName: dev.webfx.test1.b
+		// [Info]  packageName: dev.webfx.test1.c
+		// [Info] -----------------------
+		// Passes OK
+		//final String test1FileB = userDir + "/src/test/java/dev/webfx/test1/b/B1.java".replace('/', File.separatorChar);
+		//processor.addFile(test1FileB);
 		
-		//final String fileC = userDir + "/src/test/java/dev/webfx/test1/c/C1Implements.java".replace('/', File.separatorChar);
-		//processor.addFile(fileC);
+		// [Info] --------Results--------
+		// [Info]  packageName: dev.webfx.test1.c
+		// [Info]  packageName: java.lang
+		// [Info] -----------------------
+        // Passes OK
+		//final String test1FileC1 = userDir + "/src/test/java/dev/webfx/test1/c/C1Implements.java".replace('/', File.separatorChar);
+		//processor.addFile(test1FileC1);
 		
-		//final String fileZ = userDir + "/src/test/java/dev/webfx/test2/a/A.java".replace('/', File.separatorChar);
-	    //processor.addFile(fileZ);
+		//
+		// Fails - NPE when using var
+		//
+		final String test1FileC5 = userDir + "/src/test/java/dev/webfx/test1/c/C5Extends.java".replace('/', File.separatorChar);
+		processor.addFile(test1FileC5);
+		
+		// [Info] --------Results--------
+		// [Info]  packageName: dev.webfx.test2.a
+		// [Info]  packageName: dev.webfx.test2.b
+		// [Info] -----------------------
+		// Fails - [Warn] process: Failed to resolve className= b.getC
+		//
+		// final String test2FileA = userDir + "/src/test/java/dev/webfx/test2/a/A.java".replace('/', File.separatorChar);
+	    // processor.addFile(test2FileA);
 				
 		final List<String> packageNameList = processor.process();
 		
