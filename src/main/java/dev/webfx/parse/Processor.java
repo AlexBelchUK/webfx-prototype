@@ -61,7 +61,7 @@ public class Processor {
 	 * 
 	 * @return List of package names for all files supplied
 	 */
-	public List<String> process() {
+	public List<String> process() { // NOSONAR
 		final List<ClassDefinitionData> classDefinitionList = new ArrayList<>(); 
 		
 	    while (! pathFileDeque.isEmpty()) {
@@ -82,10 +82,16 @@ public class Processor {
 	    final List<String> packageNameList = new ArrayList<>();
 	    
 	    for (final ClassDefinitionData classDefinitionData : classDefinitionList) {
+	    
+	    	String packageName = classDefinitionData.getPackageName();
+			if (! packageNameList.contains(packageName)) {
+				packageNameList.add(packageName);
+			}
+			
 	    	for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 	    		if (packageClassData.isResolved()) {
 	    			
-	    			final String packageName = packageClassData.getPackageName();
+	    			packageName = packageClassData.getPackageName();
 	    			if (! packageNameList.contains(packageName)) {
 	    				packageNameList.add(packageName);
 	    			}

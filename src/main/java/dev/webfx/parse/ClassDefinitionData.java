@@ -14,6 +14,7 @@ public class ClassDefinitionData {
     private final List<ImportData> importList;
     
     private String primaryClassName;
+    private final List<String> secondaryClassNameList;
     
     private final List<String> genericList;
     
@@ -27,6 +28,7 @@ public class ClassDefinitionData {
 	public ClassDefinitionData(final String pathFile) {
 		this.pathFile = pathFile;
 		this.importList = new ArrayList<>();
+		this.secondaryClassNameList = new ArrayList<>();
 		this.genericList = new ArrayList<>();
 		this.packageClassList = new ArrayList<>();
 	}
@@ -91,6 +93,22 @@ public class ClassDefinitionData {
 		this.primaryClassName = primaryClassName;
 	}
 	
+	/**
+	 * @return the secondaryClassNameList
+	 */
+	public List<String> getSecondaryClassNameList() {
+		return secondaryClassNameList;
+	}
+
+	/**
+	 * Add a non primary class name to the secondary class name list
+	 * 
+	 * @param secondaryClassName the secondaryClassName to add
+	 */
+	public void addClassNameToSecondaryClassNameList(String secondaryClassName) {
+		secondaryClassNameList.add(secondaryClassName);
+	}
+
 	/**
 	 * Add unique class name to the package class list
 	 * 

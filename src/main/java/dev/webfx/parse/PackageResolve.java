@@ -1,11 +1,10 @@
-package dev.webfx.parse;
+ package dev.webfx.parse;
 
 import java.util.List;
 
 // @TODO
-//  a. List filter to fetch only unresolved items
-//  b. Keep list of items still to resolve to reduce unnecessary loops
-//  c. JUnit tests to test each method 
+//  a. Complete tests and fixes
+//  b. Add package cache
 
 /**
  * @author Alexander Belch
@@ -44,28 +43,38 @@ public class PackageResolve {
 		
 		log.verbose ("resolve: Called...");
 		
-		resolvePackagesForPackageAndClassNameUseExternalClasses(classDefinitionData,
-				                                                this::resolvePackageOnClassPath,
-				                                                pathFileList);
+		resolveUseExternalCallback(classDefinitionData,
+				                   this::resolvePackageOnClassPath,
+		                           pathFileList);
 		
-		resolvePackagesForClassNameUseClassNameImports(classDefinitionData);
+		resolveUseClassNameImports(classDefinitionData);
 		
-		resolvePackagesForClassNameUseExternalWildcardImports(classDefinitionData,
-				                                              this::resolvePackageOnClassPath,
-				                                              pathFileList);
+		resolveUseWildCardImportsAndExternalCallback(classDefinitionData,
+				                                     this::resolvePackageOnClassPath,
+				                                     pathFileList);
 		
-		resolvePackagesForClassNameUseClassDefinition(classDefinitionData);
+		resolveUsePrimaryClassName(classDefinitionData);
 		
-		resolvePackagesForClassNameUseDefaultPackage(classDefinitionData);
+		resolveUseSecondaryClassNameList(classDefinitionData);
+		
+		resolveUseJavaLangPackage(classDefinitionData);
+		
+		resolveUseDefaultPackageAndExternalCallback(classDefinitionData, 
+				                                    this::resolvePackageOnClassPath, 
+				                                    pathFileList);
 		
 	    if (cliPackageResolveCallback != null) {
-	    	resolvePackagesForPackageAndClassNameUseExternalClasses(classDefinitionData,
-                                                                    cliPackageResolveCallback,
-                                                                    pathFileList);
+	    	resolveUseExternalCallback(classDefinitionData,
+                                       cliPackageResolveCallback,
+                                       pathFileList);
 
-	    	resolvePackagesForClassNameUseExternalWildcardImports(classDefinitionData,
-                                                                  cliPackageResolveCallback,
-                                                                  pathFileList);
+	    	resolveUseWildCardImportsAndExternalCallback(classDefinitionData,
+                                                         cliPackageResolveCallback,
+                                                         pathFileList);
+	    	
+	    	resolveUseDefaultPackageAndExternalCallback(classDefinitionData, 
+	    			                                    cliPackageResolveCallback, 
+                                                        pathFileList);
 	    }
 	    
 	    log.verbose ("resolve: Done.");
@@ -80,11 +89,11 @@ public class PackageResolve {
 	 * @param packageResolveCallback
 	 * @param pathFileList
 	 */
-	private void resolvePackagesForPackageAndClassNameUseExternalClasses(final ClassDefinitionData classDefinitionData, // NOSONAR
-			                                                             final PackageResolveCallback packageResolveCallback,
-			                                                             final List<String> pathFileList) {
+	private void resolveUseExternalCallback(final ClassDefinitionData classDefinitionData, // NOSONAR
+			                                final PackageResolveCallback packageResolveCallback,
+			                                final List<String> pathFileList) {
 
-		log.verbose ("resolvePackagesForPackageAndClassNameUseExternalClasses: Called...");
+		log.verbose ("resolveUseExternalCallback: Called...");
 		
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 			final String packageClassName = packageClassData.getClassName();
@@ -114,7 +123,7 @@ public class PackageResolve {
 		    		    	className = classNamePart;
 		    		    }
 		    		    
-		    		    log.verbose("resolvePackagesForPackageAndClassNameUseExternalClasses: try packageName=" + 
+		    		    log.verbose("resolveUseExternalCallback: try packageName=" + 
 		    		                   packageName + ", classNameFile=" + classNameFile);
 		    		    
 		    		    final PackageResolveResult result = packageResolveCallback.onPackageReolveCallback(packageName, classNameFile);
@@ -125,9 +134,9 @@ public class PackageResolve {
         	        	    packageClassData.setClassName(className);
 			    		    packageClassData.setResolved(true);
 			    		
-			    		    log.verbose ("resolvePackagesForPackageAndClassNameUseExternalClasses: " + 
+			    		    log.verbose ("resolveUseExternalCallback: " + 
 			    		                    "resolved=true, pathFile=" + result.getPathFile() + 
-			    		                    ", packageName=" + packageName + ", className=" + className);
+			    		                    ", packageName=" + packageName + ", className=" + className); // NOSONAR
 		    			
 			    	    	break;
 			   		    }
@@ -136,7 +145,7 @@ public class PackageResolve {
 		    }
 		}
 		
-		log.verbose ("resolvePackagesForPackageAndClassNameUseExternalClasses: Done.");
+		log.verbose ("resolveUseExternalCallback: Done.");
 	}
 	
 	/**
@@ -205,17 +214,17 @@ public class PackageResolve {
 	 *
 	 * @param classDefinitionData
 	 */
-	private void resolvePackagesForClassNameUseClassNameImports(final ClassDefinitionData classDefinitionData) {
-		log.verbose("resolvePackagesForClassNameUseClassNameImports: Called...");
+	private void resolveUseClassNameImports(final ClassDefinitionData classDefinitionData) {
+		log.verbose("resolveUseClassNameImports: Called...");
 		
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 			if (! packageClassData.isResolved()) {				
 				final String className = packageClassData.getClassName();
-				log.verbose("resolvePackagesForClassNameUseClassNameImports: try to match className=" + className);
+				log.verbose("resolveUseClassNameImports: try to match className=" + className);
 		
 		        for (final ImportData importData : classDefinitionData.getImportList()) {    			
 			        if (importData.getImportType() == ImportType.CLASS_NAME) {
-			        	log.verbose("resolvePackagesForClassNameUseClassNameImports: try packageClassName=" +
+			        	log.verbose("resolveUseClassNameImports: try packageClassName=" +
 			        			       importData.getImportName());
 					           		
 			            if (importData.getImportName().endsWith("." + className)) {
@@ -225,8 +234,8 @@ public class PackageResolve {
 				            packageClassData.setPackageName(packageName);
 				       	    packageClassData.setResolved(true);
 				       	
-				       	    log.verbose("resolvePackagesForClassNameUseClassNameImports: " + 
-				       	                   "resolved=true, packageName=" + packageName + 
+				       	    log.verbose("resolveUseClassNameImports: " + 
+				       	                   "resolved=true, packageName=" + packageName + // NOSONAR
 				       	                   ", className=" + className);
 				       	    break;
 				        }
@@ -235,7 +244,7 @@ public class PackageResolve {
 			}
 		}
 		
-		log.verbose("resolvePackagesForClassNameUseClassNameImports: Done.");
+		log.verbose("resolveUseClassNameImports: Done.");
 	}
 
 	/**
@@ -247,15 +256,15 @@ public class PackageResolve {
 	 * @param packageResolveCallback
 	 * @param pathFileList
 	 */
-	private void resolvePackagesForClassNameUseExternalWildcardImports(final ClassDefinitionData classDefinitionData,
-			                                                           final PackageResolveCallback packageResolveCallback,
-			                                                           final List<String> pathFileList) {
-		log.verbose ("resolvePackagesForClassNameUseExternalWildcardImports: Called...");
+	private void resolveUseWildCardImportsAndExternalCallback(final ClassDefinitionData classDefinitionData,
+	                                                          final PackageResolveCallback packageResolveCallback,
+	                                                          final List<String> pathFileList) {
+		log.verbose ("resolveUseWildCardImportsAndExternalCallback: Called...");
 		
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 			if (! packageClassData.isResolved()) {
 				final String className = packageClassData.getClassName();
-				log.verbose ("resolvePackagesForClassNameUseExternalWildcardImports: try to resolve className=" + className);
+				log.verbose ("resolveUseWildCardImportsAndExternalCallback: try to resolve className=" + className);
 				
 		        for (final ImportData importData : classDefinitionData.getImportList()) {
 			        if (importData.getImportType() == ImportType.WILDCARD) {
@@ -266,7 +275,7 @@ public class PackageResolve {
 			            	packageClassData.setPackageName(packageName);
 				       	    packageClassData.setResolved(true);
 				       	    
-				       	    log.verbose ("resolvePackagesForClassNameUseExternalWildcardImports: " + 
+				       	    log.verbose ("resolveUseWildCardImportsAndExternalCallback: " + 
 				       	                    "resolved=true, packageName=" + packageName + 
 				       	                    ", className=" + className);
 				       	    break;
@@ -276,16 +285,16 @@ public class PackageResolve {
 			}
 		}
 		
-		log.verbose ("resolvePackagesForClassNameUseExternalWildcardImports: Done.");
+		log.verbose ("resolveUseWildCardImportsAndExternalCallback: Done.");
 	}
 
 	/**
-	 * Resolve by testing main class name and package name in the class definition
+	 * Resolve by testing primary class name and package name in the class definition
 	 * 
 	 * @param classDefinitionData
 	 */
-	private void resolvePackagesForClassNameUseClassDefinition(final ClassDefinitionData classDefinitionData) {
-		log.verbose("resolvePackagesForClassNameUseClassDefinition: Called...");
+	private void resolveUsePrimaryClassName(final ClassDefinitionData classDefinitionData) {
+		log.verbose("resolveUsePrimaryClassName: Called...");
 		
 		final String className = classDefinitionData.getPrimaryClassName();
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
@@ -294,13 +303,39 @@ public class PackageResolve {
 		        packageClassData.setPackageName(classDefinitionData.getPackageName());
 		        packageClassData.setResolved(true);
 		        
-		        log.verbose("resolvePackagesForClassNameUseClassDefinition: " + 
+		        log.verbose("resolveUsePrimaryClassName: " + 
 		                       "resolved=true, packageName = " + classDefinitionData.getPackageName() +
 		                       ", className=" + className);
 			}
 		}
 		
-		log.verbose("resolvePackagesForClassNameUseClassDefinition: Done.");
+		log.verbose("resolveUsePrimaryClassName: Done.");
+	}
+	
+	/**
+	 * Resolve by testing main class name and package name in the class definition
+	 * 
+	 * @param classDefinitionData
+	 */
+	private void resolveUseSecondaryClassNameList(final ClassDefinitionData classDefinitionData) {
+		log.verbose("resolveUseSecondaryClassNameList: Called...");
+		
+		final List<String> classNameList = classDefinitionData.getSecondaryClassNameList();
+		for (final String className : classNameList) {
+		    for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
+			    if (! packageClassData.isResolved() &&
+		            packageClassData.getClassName().equals(className)) {
+		            packageClassData.setPackageName(classDefinitionData.getPackageName());
+		            packageClassData.setResolved(true);
+		        
+		            log.verbose("resolveUseSecondaryClassNameList: " + 
+		                        "resolved=true, packageName = " + classDefinitionData.getPackageName() +
+		                        ", className=" + className);
+			    }
+		    }
+		}
+
+		log.verbose("resolveUseSecondaryClassNameList: Done.");
 	}
 
 	/**
@@ -308,13 +343,13 @@ public class PackageResolve {
      *
 	 * @param classDefinitionData
 	 */
-	private void resolvePackagesForClassNameUseDefaultPackage(final ClassDefinitionData classDefinitionData) {
-		log.verbose("resolvePackagesForClassNameUseDefaultPackage: Called...");
+	private void resolveUseJavaLangPackage(final ClassDefinitionData classDefinitionData) {
+		log.verbose("resolveUseJavaLangPackage: Called...");
 		
 		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 			if (! packageClassData.isResolved()) {
 				final String className = packageClassData.getClassName();
-				log.verbose("resolvePackagesForClassNameUseDefaultPackage: packageName=" + 
+				log.verbose("resolveUseJavaLangPackage: packageName=" + 
 				               JAVA_LANG_PACKAGE_NAME + ". className=" + className);
 				
 				final PackageResolveResult result = resolvePackageOnClassPath(JAVA_LANG_PACKAGE_NAME, className);
@@ -322,14 +357,14 @@ public class PackageResolve {
 	                packageClassData.setPackageName(JAVA_LANG_PACKAGE_NAME);
 				    packageClassData.setResolved(true);
 				    
-				    log.verbose("resolvePackagesForClassNameUseDefaultPackage: " + 
+				    log.verbose("resolveUseJavaLangPackage: " + 
 				                   "resolved=true, packageName=" + JAVA_LANG_PACKAGE_NAME + 
 				                   ", className=" + className);
 		        }
 			}
 		}
 		
-		log.verbose("resolvePackagesForClassNameUseDefaultPackage: Done.");
+		log.verbose("resolveUseJavaLangPackage: Done.");
 	}
 
 	/**
@@ -361,5 +396,54 @@ public class PackageResolve {
 		log.verbose("resolvePackageOnClassPath: Done.");
 		
 		return new PackageResolveResult(false, null);
+	}
+	
+	/**
+	 * Case where the class name contains '.' as it is
+     * fully resolved to start with, need to determine the
+     * package and class name part allowing for nested inner classes
+	 * 
+	 * @param classDefinitionData
+	 * @param packageResolveCallback
+	 * @param pathFileList
+	 */
+	private void resolveUseDefaultPackageAndExternalCallback(final ClassDefinitionData classDefinitionData, // NOSONAR
+	    		                                             final PackageResolveCallback packageResolveCallback,
+		    	                                             final List<String> pathFileList) {
+		
+		final String defaultPackageName = classDefinitionData.getPackageName();
+		log.verbose ("resolveUseDefaultPackageAndExternalCallback: defaultPackageName=" + defaultPackageName);
+		
+		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
+			final String packageClassName = packageClassData.getClassName();
+		    
+		    if (! packageClassData.isResolved()) {
+		        
+		    	String primaryClassName = packageClassName;
+			    final int index = packageClassName.indexOf(".");
+			   	if (index >= 0) {
+			   		primaryClassName = packageClassName.substring(0, index);
+			   	}
+			   	
+			   	log.verbose("resolveUseDefaultPackageAndExternalCallback: defaultPackageName=" + 
+		                     defaultPackageName + ", primaryClassName=" + primaryClassName);
+		    		    
+		    	final PackageResolveResult result = packageResolveCallback.onPackageReolveCallback(defaultPackageName, primaryClassName);
+		    	if (result.isSuccess()) {    			
+		    		addUniquePathFileToList(result.getPathFile(), pathFileList);
+		    			
+			    	packageClassData.setPackageName(defaultPackageName);
+        	        packageClassData.setClassName(primaryClassName);
+			    	packageClassData.setResolved(true);
+			    		
+			    	log.verbose ("resolveUseDefaultPackageAndExternalCallback: " + 
+			                     "resolved=true, pathFile=" + result.getPathFile() + 
+			                     ", packageName=" + defaultPackageName + ", className=" + primaryClassName);
+		    			
+			    }
+		   	}
+		}
+		
+		log.verbose ("resolveUseDefaultPackageAndExternalCallback: Done.");
 	}
 }

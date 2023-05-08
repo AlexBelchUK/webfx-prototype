@@ -164,13 +164,17 @@ public class JavaParse {
     	    classDefinitionData.setPrimaryClassName(className);
         	log.verbose ("processClassTree: primaryClassName=" + className);
         }
-    
+    	else {
+    		classDefinitionData.addClassNameToSecondaryClassNameList(className);
+    		log.verbose ("processClassTree: Add secondaryClassName=" + className);
+    	}
+
     	log.verbose ("processClassTree: Add className=" + className);
 		
     	for (final Tree tree : classTree.getTypeParameters()) {
     		treeStack.push(tree);
     		if (tree instanceof TypeParameterTree typeParameterTree) {
-    			processTypeParameterTree(typeParameterTree, treeStack, classDefinitionData);
+    			processTypeParameterTree(typeParameterTree, classDefinitionData);
     		}
     		else {
         	    log.warn ("processClassTree: [TypeParameter] Skip=" + tree.getKind() + " [" + tree + "]");
@@ -205,11 +209,9 @@ public class JavaParse {
      * used to remove from class list any objects with type name T
      * 
      * @param typeParameterTree The type parameter tree
-     * @param treeStack Stack of depth traversed classes up to this one
      * @param classDefinitionData The class definition data to update
      */
-    private void processTypeParameterTree(final TypeParameterTree typeParameterTree, 
-    		                              final Deque<Tree> treeStack,
+    private void processTypeParameterTree(final TypeParameterTree typeParameterTree,
     		                              final ClassDefinitionData classDefinitionData) {
     	log.indent();
 		log.verbose("processTypeParameterTree: " + typeParameterTree.getKind());
@@ -304,7 +306,7 @@ public class JavaParse {
     * @param treeStack Stack of depth traversed classes up to this one
     * @param classDefinitionData The class definition details
     */
-    private void processMethodTree(final MethodTree methodTree,
+    private void processMethodTree(final MethodTree methodTree, // NOSONAR
     		                       final Deque<Tree> treeStack,
                                    final ClassDefinitionData classDefinitionData) {
     	log.indent();
@@ -331,7 +333,7 @@ public class JavaParse {
                 processMemberSelectTree(memberSelectTree, treeStack, classDefinitionData);
             }
             else if (returnType instanceof PrimitiveTypeTree primitiveTypeTree) {
-                processPrimitiveTypeTree(primitiveTypeTree, treeStack, classDefinitionData);
+                processPrimitiveTypeTree(primitiveTypeTree);
             }
             else {
                 log.warn("processMethodTree: Skip return kind=" + returnType.getKind() + " [" + returnType + "}");
@@ -388,12 +390,8 @@ public class JavaParse {
 
     /**
      * @param primitiveTypeTree
-     * @param treeStack Stack of depth traversed classes up to this one
-     * @param classDefinitionData
      */
-    private void processPrimitiveTypeTree(final PrimitiveTypeTree primitiveTypeTree,
-    		                              final Deque<Tree> treeStack,
-                                          final ClassDefinitionData classDefinitionData) {
+    private void processPrimitiveTypeTree(final PrimitiveTypeTree primitiveTypeTree) {
     	
     	log.indent();
     	log.verbose("processPrimitiveTypeTree: " + primitiveTypeTree.getKind());
