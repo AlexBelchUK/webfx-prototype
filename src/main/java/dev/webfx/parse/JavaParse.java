@@ -53,7 +53,7 @@ public class JavaParse {
 		javaCompiler = ToolProvider.getSystemJavaCompiler();
 		standardJavaFileManager = javaCompiler.getStandardFileManager(null, null, null);
 	    log = new Log();
-	    log.setLogLevel(LogType.WARN);
+	    log.setLogLevel(LogType.INFO);
 	}
 	
 	/**
@@ -171,6 +171,19 @@ public class JavaParse {
 
     	log.verbose ("processClassTree: Add className=" + className);
 		
+    	Tree extendsTree = classTree.getExtendsClause();
+    	if (extendsTree instanceof IdentifierTree identifierTree) {
+    		log.verbose ("processClassTree: extendsClause: " + extendsTree.getKind() + ", className=" + extendsTree);
+    		processIdentifierTree(identifierTree, treeStack, classDefinitionData);    		
+    	}
+    	
+    	for (final Tree tree : classTree.getImplementsClause()) {
+    		if (tree instanceof IdentifierTree identifierTree) {
+    	        log.verbose("processClassTree: implementsClause: " + tree.getKind() + ", " + tree);
+    	        processIdentifierTree(identifierTree, treeStack, classDefinitionData);
+    	    }
+    	}
+
     	for (final Tree tree : classTree.getTypeParameters()) {
     		treeStack.push(tree);
     		if (tree instanceof TypeParameterTree typeParameterTree) {
@@ -255,27 +268,36 @@ public class JavaParse {
       
     	log.indent();
         log.verbose("processVariableTree: " + variableTree.getKind());
-        
+                
         final Tree tree = variableTree.getType();
-        treeStack.push(tree);
+        if (tree != null) {
+            treeStack.push(tree);
         
-        if (tree instanceof IdentifierTree identifierTree) {
-            processIdentifierTree(identifierTree, treeStack, classDefinitionData);
+            if (tree instanceof IdentifierTree identifierTree) {
+                processIdentifierTree(identifierTree, treeStack, classDefinitionData);
+            }
+            else if (tree instanceof MemberSelectTree memberSelectTree) {
+        	    processMemberSelectTree(memberSelectTree, treeStack, classDefinitionData);
+            }
+            else if (tree instanceof ParameterizedTypeTree parameterizedTypeTree) {
+        	    processParameterizedTypeTree(parameterizedTypeTree, treeStack, classDefinitionData);
+            }
+            else {
+                log.warn("processVariableTree: Skip kind=" + tree.getKind() + "[" + tree + "]");
+            }
+            treeStack.pop();
         }
-        else if (tree instanceof MemberSelectTree memberSelectTree) {
-        	processMemberSelectTree(memberSelectTree, treeStack, classDefinitionData);
+
+        final ExpressionTree expressionTree = variableTree.getInitializer();
+        if (expressionTree != null) {
+        	treeStack.push(expressionTree);
+        	processExpressionTree(expressionTree, treeStack, classDefinitionData);
+        	treeStack.pop();
         }
-        else if (tree instanceof ParameterizedTypeTree parameterizedTypeTree) {
-        	processParameterizedTypeTree(parameterizedTypeTree, treeStack, classDefinitionData);
-        }
-        else {
-            log.warn("processVariableTree: Skip kind=" + tree.getKind() + "[" + tree + "]");
-        }
-        treeStack.pop();
 
         log.outdent();
     }
-    
+
     /**
      * @param parameterizedTypeTree
      * @param treeStack Stack of depth traversed classes up to this one
@@ -381,9 +403,11 @@ public class JavaParse {
 
         // Method body
         final BlockTree blockTree = methodTree.getBody();
-        treeStack.push(blockTree);
-        processBlockTree(blockTree, treeStack, classDefinitionData);
-        treeStack.pop();         
+        if (blockTree != null) {
+            treeStack.push(blockTree);
+            processBlockTree(blockTree, treeStack, classDefinitionData);
+            treeStack.pop();
+        }
         
         log.outdent();
     }
@@ -394,7 +418,7 @@ public class JavaParse {
     private void processPrimitiveTypeTree(final PrimitiveTypeTree primitiveTypeTree) {
     	
     	log.indent();
-    	log.verbose("processPrimitiveTypeTree: " + primitiveTypeTree.getKind());
+    	log.verbose("processPrimitiveTypeTree: " + primitiveTypeTree.getKind() + ", " + primitiveTypeTree);
         log.outdent();
     }
 
@@ -442,6 +466,10 @@ public class JavaParse {
     		addClass = false;
         }
     
+    	if (addClass && isMemberSelectMethodInvocation(treeStack)) {
+    		addClass = false;
+    	}
+
     	logTreeStack(treeStack);
     	
         if (addClass) {
@@ -726,6 +754,35 @@ public class JavaParse {
     	return false;
     }
     
+    /**
+     * If the last visited tree element was a MemberSelect and the
+     * previous was a MethodInvocation then we have a method invocation
+     * on a select member which is not a class object - return true.
+     * 
+     * @param treeStack Stack of depth traversed classes
+     * 
+     * @return true if an member select and method invocation, false if not
+     */
+    private boolean isMemberSelectMethodInvocation(final Deque<Tree>treeStack) {
+        final Iterator<Tree> iterator = treeStack.iterator();
+    	
+    	if (iterator.hasNext()) {
+    		final Tree tree = iterator.next();
+        	if (! (tree instanceof MemberSelectTree)) {
+        		return false;
+        	}
+    	}
+    	
+    	if (iterator.hasNext()) {
+    		final Tree tree = iterator.next();
+    		if (tree instanceof MethodInvocationTree) {
+    			return true;
+    		}
+    	}
+    	
+    	return false;
+    }
+
     /**
      * Test to see how may nested class definitions there are
      * 
