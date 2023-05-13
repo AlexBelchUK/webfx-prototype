@@ -23,7 +23,7 @@ public class PackageResolveDummyCli implements PackageResolveCallback {
 		userDir = System.getProperty("user.dir");
 		packageClassResolveResultLookup = new HashMap<>();
 
-		log.info ("user.dir= " + userDir);
+		log.info ("PackageResolveDummyCli: user.dir= " + userDir);
 	}
 
 	/**
@@ -55,7 +55,7 @@ public class PackageResolveDummyCli implements PackageResolveCallback {
 
 	    if (file.exists() && file.isFile()) {
 	    	// File found - valid java source file
-	    	log.info("PackageResolveDummyCli.onPackageReolveCallback: resolved file=" + file.getAbsolutePath());
+	    	log.verbose("PackageResolveDummyCli.onPackageReolveCallback: resolved file=" + file.getAbsolutePath());
 
 	    	packageResolveResult = new PackageResolveResult(true, fullPathFile);
 	    	packageClassResolveResultLookup.put (packageName + ":" + className, packageResolveResult);

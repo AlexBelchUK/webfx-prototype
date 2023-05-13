@@ -20,7 +20,7 @@ public class ProcessorTest {
 	    log.setLogLevel(LogType.INFO);
 		userDir = System.getProperty("user.dir");
 		
-		log.info ("user.dir= " + userDir);
+		log.info ("ProcessorTest: user.dir= " + userDir);
 	}
 	
 	/**
@@ -69,6 +69,14 @@ public class ProcessorTest {
 		//processor.addFile(test1FileC5);
 		
 		// [Info] --------Results--------
+		// [Info]  packageName: dev.webfx.test1.c
+		// [Info]  packageName: java.lang
+		// [Info] -----------------------
+        // Passes OK
+		// final String test1FileC6 = userDir + "/src/test/java/dev/webfx/test1/c/C6BasicClass.java".replace('/', File.separatorChar);
+		//processor.addFile(test1FileC6);
+				
+		// [Info] --------Results--------
 		// [Info]  packageName: dev.webfx.test2.a
 		// [Info]  packageName: dev.webfx.test2.b
 		// [Info]  packageName: dev.webfx.test2.c
@@ -77,7 +85,7 @@ public class ProcessorTest {
 		// Passes OK
 		final String test2FileA = userDir + "/src/test/java/dev/webfx/test2/a/A.java".replace('/', File.separatorChar);
 	    processor.addFile(test2FileA);
-				
+	    		
 		final List<String> packageNameList = processor.process();
 		
 		log.info("--------Results--------");

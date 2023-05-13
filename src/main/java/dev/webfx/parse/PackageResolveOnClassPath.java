@@ -32,7 +32,7 @@ public class PackageResolveOnClassPath implements PackageResolveCallback {
 		final String packageClassName = packageName + "." + className;
 		try {
 			if (Class.forName(packageClassName, false, getClass().getClassLoader()) != null) {
-				log.info("PackageResolveOnClassPath.onPackageResolveCallback: " + 
+				log.verbose("PackageResolveOnClassPath.onPackageResolveCallback: " + 
 			                   "resolved=true packageName=" + packageName +
 			                   ", className=" + className);
 		        return new PackageResolveResult(true, null);

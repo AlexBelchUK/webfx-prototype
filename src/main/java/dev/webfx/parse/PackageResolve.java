@@ -214,7 +214,7 @@ public class PackageResolve {
 		if (pathFileList != null && pathFile != null && ! pathFile.isBlank() &&
 		    ! pathFileList.contains(pathFile)) {
 			
-			log.info ("addUniquePathFileToList: Adding pathFile=" + pathFile);
+			log.verbose ("addUniquePathFileToList: Adding pathFile=" + pathFile);
 			pathFileList.add(pathFile);
 		}
 	}
