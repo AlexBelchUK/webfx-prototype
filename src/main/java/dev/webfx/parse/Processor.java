@@ -23,7 +23,7 @@ public class Processor {
 	 */
 	public Processor() {
 		log = new Log();
-		log.setLogLevel(LogType.WARN);
+		log.setLogLevel(LogType.INFO);
 
 		javaParse = new JavaParse();
 		packageResolve = new PackageResolve();
@@ -72,6 +72,8 @@ public class Processor {
 	    		
 	    	    packageResolve.resolve(classDefinitionData, newPathFilesToProcessList);
 	    	    classDefinitionList.add(classDefinitionData);
+
+	    	    printClassDefinition(classDefinitionData);
 	    		
 	    		for (final String newPathFileToProcess : newPathFilesToProcessList) {
 	    			addFile(newPathFileToProcess);
@@ -106,5 +108,24 @@ public class Processor {
 	    Collections.sort(packageNameList);
 	    
 	    return packageNameList;
+	}
+	
+	private void printClassDefinition(final ClassDefinitionData classDefinitionData) {
+		
+		log.info ("----------------------------------------------------------");
+		log.info ("package: " + classDefinitionData.getPackageName());
+		log.info ("primaryClass: " + classDefinitionData.getPrimaryClassName());
+		
+		for (final String secondaryClass : classDefinitionData.getSecondaryClassNameList()) {
+			log.info ("secondaryClass: " + secondaryClass);
+		}
+		
+		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
+			log.info ("packageClassData: package=" + 
+	                  packageClassData.getPackageName() + ", class=" +
+                      packageClassData.getClassName() + ", resolved=" + 
+	                  packageClassData.isResolved());
+		}
+		log.info ("----------------------------------------------------------");
 	}
 }

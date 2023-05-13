@@ -14,6 +14,13 @@ public interface PackageResolveCallback {
 	 * 
 	 * @return result of resolving
 	 */
-	public PackageResolveResult onPackageReolveCallback(final String packageName, 
-			                                            final String className);
+	public PackageResolveResult onPackageResolveCallback(final String packageName, 
+			                                             final String className);
+
+	/**
+	 * Return description of the resolver e.g. class name
+	 * 
+	 * @return String description
+	 */
+	public String onPackgeResolveDescription();
 }
