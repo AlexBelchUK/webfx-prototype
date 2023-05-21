@@ -128,7 +128,7 @@ public class PackageResolve {
 		    		    final int fileIndex = classNamePart.indexOf(".");
 		    		    if (fileIndex >= 0) {
 		    		    	classNameFile = classNamePart.substring(0, fileIndex);
-		    		    	className = classNamePart.substring(index + 1);
+		    		    	className = classNamePart.substring(fileIndex +  1);	
 		    		    }
 		    		    else {
 		    		    	classNameFile = classNamePart;
