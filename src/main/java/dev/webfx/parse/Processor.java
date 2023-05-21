@@ -57,6 +57,14 @@ public class Processor {
 	}
 	
 	/**
+	 * Reset files to be processed
+	 */
+	public void clearFiles() {
+		pathFileDeque.clear();
+		pathFileProcessedList.clear();
+	}
+	
+	/**
 	 * Process all files and request other files as needed
 	 * 
 	 * @return List of package names for all files supplied
