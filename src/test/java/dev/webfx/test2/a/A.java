@@ -6,6 +6,8 @@ public class A {
 
     public static void getC(B b) {
         b.getC();
+        
+        B[] arrayB;
     }
 
 }

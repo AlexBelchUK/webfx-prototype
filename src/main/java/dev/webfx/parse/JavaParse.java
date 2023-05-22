@@ -14,6 +14,7 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
 import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
@@ -24,6 +25,7 @@ import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.LambdaExpressionTree;
+import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
@@ -44,9 +46,9 @@ import com.sun.source.util.JavacTask;
  * @author Alexander Belch
  */
 public class JavaParse {
+	private static final boolean LOG_ADD_CLASS = false;
 	
 	private final Log log;
-	private final boolean logAddClass = false;
 	
 	private final JavaCompiler javaCompiler;
 	private final StandardJavaFileManager standardJavaFileManager;
@@ -131,6 +133,19 @@ public class JavaParse {
     	log.outdent();
     }
     
+    /**
+     * Process array type tree
+     * 
+     * @param arrayTypeTree Array type tree
+     */
+    private void processArrayTypeTree(final ArrayTypeTree arrayTypeTree) {
+    	log.indent();
+    	log.verbose("processArrayTypeTree: " + arrayTypeTree.getKind() + " [" + arrayTypeTree + "]");
+        log.verbose("processArrayTypeTree: type=" + arrayTypeTree.getType());
+        addClassNameToPackageClassList(arrayTypeTree.getType().toString(), "processArrayTypeTree");
+    	log.outdent();
+    }
+
     /**
      * Process assignment tree
      * 
@@ -383,6 +398,9 @@ public class JavaParse {
          else if (expressionTree instanceof ParameterizedTypeTree parameterizedTypeTree) {
          	processParameterizedTypeTree(parameterizedTypeTree);
          }
+         else if (expressionTree instanceof LiteralTree literalTree) {
+        	 processLiteralTree(literalTree);
+         }
          else {
              log.warn("processExpressionTree: skip kind=" + expressionTree.getKind() + " [" + expressionTree + "]");
          }
@@ -459,6 +477,18 @@ public class JavaParse {
     	}
     	
     	log.outdent();
+	}
+	
+	/**
+	 * Process literal tree
+	 * 
+	 * @param literalTree The literal tree
+	 */
+	private void processLiteralTree(final LiteralTree literalTree) {
+		log.indent();
+        log.verbose("processLiteralTree: " + literalTree.getKind() + " [" + literalTree + "]");
+        log.verbose("processLiteralTree: value=" + literalTree.getValue());
+        log.outdent();
 	}
 	
    /**
@@ -839,7 +869,10 @@ public class JavaParse {
         if (tree != null) {
             treeStack.push(tree);
         
-            if (tree instanceof IdentifierTree identifierTree) {
+            if (tree instanceof ArrayTypeTree arrayTypeTree) {
+            	processArrayTypeTree(arrayTypeTree);
+            }
+            else if (tree instanceof IdentifierTree identifierTree) {
                 processIdentifierTree(identifierTree);
             }
             else if (tree instanceof MemberSelectTree memberSelectTree) {
@@ -874,70 +907,77 @@ public class JavaParse {
      * @param className The class to test and add
      * @param methodName The calling method name
      */
-    private void addClassNameToPackageClassList(final String className, // NOSONAR
+    private void addClassNameToPackageClassList(final String className,
     		                                    final String methodName) {
-    	
     	log.indent();
-    	
-    	boolean addClass = false;
-    	
-    	if (treeStackMatches(IdentifierTree.class, ClassTree.class)) {
-    		addClass = true;
-        }
-    	
-    	if (treeStackMatches(IdentifierTree.class, MethodTree.class)) {
-    		addClass = true;
-        }
-    	
-    	if (treeStackMatches(IdentifierTree.class, NewClassTree.class)) {
-    		addClass = true;
-        }
-    	
-    	if (treeStackMatches(IdentifierTree.class, ParameterizedTypeTree.class)) {
-    		addClass = true;
-        }
-    	
-    	if (treeStackMatches(IdentifierTree.class, VariableTree.class)) {
-    		addClass = true;
-        }
-    	
-    	if (treeStackMatches(MemberSelectTree.class, MethodTree.class)) {
-    		addClass = true;
-        }
-    	
-    	if (treeStackMatches(MemberSelectTree.class, NewClassTree.class)) {
-    		addClass = true;
-        }
-    	
-    	if (treeStackMatches(MemberSelectTree.class, VariableTree.class)) {
-    		addClass = true;
-        }
-    	    	
-    	if (logAddClass) {
+
+    	if (LOG_ADD_CLASS) {
     	    treeStackLog();
     	}
-    	
+
+    	final boolean addClass = doesTreeStackHoldClassName();
         if (addClass) {
             if (! classDefinitionData.isGenericType(className)) {
-                if (logAddClass) {
+                if (LOG_ADD_CLASS) {
             	    log.info (methodName + "#: Add className=" + className);
                 }
                 classDefinitionData.addClassNameToPackageClassList(className);
             }
             else {
-            	if (logAddClass) {
+            	if (LOG_ADD_CLASS) {
             	    log.info (methodName + "#: Genric type - not adding className=" + className);
                 }
             }
     	}
     	else {
-    		if (logAddClass) {
+    		if (LOG_ADD_CLASS) {
     		    log.info (methodName + "#: NOT adding className=" + className);
     		}
     	}
         
         log.outdent();
     }
+
+	/**
+	 * Test the tree stack to determine if the item is a class name
+	 
+	 * @return True if it is a class name, false if not
+	 */
+	private boolean doesTreeStackHoldClassName() {
+		if (treeStackMatches(IdentifierTree.class, ClassTree.class)) {
+    		return true;
+        }
+    	
+    	if (treeStackMatches(IdentifierTree.class, MethodTree.class)) {
+    		return true;
+        }
+    	
+    	if (treeStackMatches(IdentifierTree.class, NewClassTree.class)) {
+    		return true;
+        }
+    	
+    	if (treeStackMatches(IdentifierTree.class, ParameterizedTypeTree.class)) {
+    		return true;
+        }
+    	
+    	if (treeStackMatches(IdentifierTree.class, VariableTree.class)) {
+    		return true;
+        }
+    	
+    	if (treeStackMatches(MemberSelectTree.class, MethodTree.class)) {
+    		return true;
+        }
+    	
+    	if (treeStackMatches(MemberSelectTree.class, NewClassTree.class)) {
+    		return true;
+        }
+    	
+    	if (treeStackMatches(MemberSelectTree.class, VariableTree.class)) {
+    		return true;
+        }
+    	
+		return false;
+	}
     
     /**
      * Test if the class is a public class
