@@ -1,6 +1,7 @@
  package dev.webfx.parse;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Alexander Belch
@@ -38,56 +39,91 @@ public class PackageResolve {
 	 * @param classDefinitionData
 	 * @param pathFileList
 	 */
-	public void resolve(final ClassDefinitionData classDefinitionData,
+	public void resolve(final ClassDefinitionData classDefinitionData, // NOSONAR
 			            final List<String> pathFileList) {
 		
 		log.verbose ("resolve: Called...");
 		
-		// External CLI resolving is done first to get any
-		// source files for further parsing...
-		if (cliPackageResolveCallback != null) {
-	    	resolveUsePackageDotClassName(classDefinitionData,
-                                          cliPackageResolveCallback,
-                                          pathFileList);
-
-			resolveUseClassNameImports(classDefinitionData, 
-                                       cliPackageResolveCallback,
-                                       pathFileList);
-
-	    	resolveUseWildCardImports(classDefinitionData,
-                                      cliPackageResolveCallback,
-                                      pathFileList);
-	    	
-	    	resolveUseClassPackage(classDefinitionData, 
-	    		                   cliPackageResolveCallback, 
-                                   pathFileList);
-	    }
+		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
 		
-		// Internal resolving is done later as there are no source files
-		// that can be added for resolving...
-		
-		resolveUsePackageDotClassName(classDefinitionData,
-				                      packageResolveOnClassPath,
-		                              null);
+			boolean resolved = false;
+			
+		    // External CLI resolving is done first to get any
+		    // source files for further parsing...
+		    if (cliPackageResolveCallback != null) {
+	    	    resolved = resolveUsePackageDotClassName(packageClassData,
+                                                         cliPackageResolveCallback,
+                                                         pathFileList);
 
-		resolveUseClassNameImports(classDefinitionData, 
-				                   packageResolveOnClassPath,
-                                   null);
-
-		resolveUseWildCardImports(classDefinitionData,
-				                  packageResolveOnClassPath,
-				                  null);
+	    	    if (! resolved) {
+	    		    resolved = resolveUseClassNameImports(classDefinitionData.getImportList(),
+	    		    		                              packageClassData, 
+                                                          cliPackageResolveCallback,
+                                                          pathFileList);
+	    	    }
+	    	    
+	    	    if (! resolved) {
+	    	        resolved = resolveUseWildCardImports(classDefinitionData.getImportList(),
+	    	        		                             packageClassData,
+                                                         cliPackageResolveCallback,
+                                                         pathFileList);
+	    	    }
+	    	    
+	    	    if (! resolved) {
+	    	        resolved = resolveUseClassPackage(classDefinitionData.getPackageName(),
+	    	        		                          packageClassData, 
+	    		                                      cliPackageResolveCallback, 
+                                                      pathFileList);
+	    	    }
+	        }
 		
-		resolveUseClassPackage(classDefinitionData, 
-				               packageResolveOnClassPath, 
-                               null);
-				
-		resolveUsePrimaryClassName(classDefinitionData);
-				
-		resolveUseSecondaryClassNameList(classDefinitionData);
-				
-		resolveUseJavaLangPackage(classDefinitionData);
-								
+		    // Internal resolving is done later as there are no source files
+		    // that can be added for resolving...
+		
+		    if (! resolved) {
+	    	    resolved = resolveUsePackageDotClassName(packageClassData,
+				                                         packageResolveOnClassPath,
+		                                                 null);
+		    }
+		    
+		    if (! resolved) {
+		        resolved = resolveUseClassNameImports(classDefinitionData.getImportList(),
+		        		                              packageClassData, 
+				                                      packageResolveOnClassPath,
+                                                      null);
+		    }
+		    
+		    if (! resolved) {
+		        resolved = resolveUseWildCardImports(classDefinitionData.getImportList(),
+		        		                             packageClassData,
+				                                     packageResolveOnClassPath,
+				                                     null);
+		    }
+		    
+		    if (! resolved) {
+		        resolved = resolveUseClassPackage(classDefinitionData.getPackageName(),
+		        		                          packageClassData, 
+				                                  packageResolveOnClassPath, 
+                                                  null);
+		    }
+		    
+		    if (! resolved) {
+		        resolved = resolveUsePrimaryClassName(classDefinitionData.getPackageName(),
+		        		                              classDefinitionData.getPrimaryClassName(),
+		        		                              packageClassData);
+		    }
+		    
+		    if (! resolved) {
+		        resolved = resolveUseSecondaryClassNameList(classDefinitionData.getPackageName(),
+		        		                                    classDefinitionData.getSecondaryClassNameHashSet(),
+		        		                                    packageClassData);
+		    }
+		    
+		    if (! resolved) {
+		        resolveUseJavaLangPackage(packageClassData);
+		    }
+		}
+		
 	    log.verbose ("resolve: Done.");
 	}
 
@@ -96,68 +132,70 @@ public class PackageResolve {
      * fully resolved to start with, need to determine the
      * package and class name part allowing for nested inner classes
 	 * 
-	 * @param classDefinitionData
+	 * @param packageClassData
 	 * @param packageResolveCallback
 	 * @param pathFileList
+	 * 
+	 * @return true if resolved, false if not
 	 */
-	private void resolveUsePackageDotClassName(final ClassDefinitionData classDefinitionData, // NOSONAR
-			                                   final PackageResolveCallback packageResolveCallback,
-			                                   final List<String> pathFileList) {
+	private boolean resolveUsePackageDotClassName(final PackageClassData packageClassData,
+			                                      final PackageResolveCallback packageResolveCallback,
+			                                      final List<String> pathFileList) {
 
 		final String description = packageResolveCallback.onPackgeResolveDescription();
 		log.verbose ("resolveUsePackageDotClassName: [" + description + "] Called...");
 		
-		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			final String packageClassName = packageClassData.getClassName();
+		final String packageClassName = packageClassData.getClassName();
 		    
-		    if (! packageClassData.isResolved() && packageClassName.contains(".")) {
+		if (packageClassName.contains(".")) {
 		           
-			    // Split into parts gradually build up string working
-			   	// forwards until a class found - the primary class
-			   	// ignore any inner class after that
-			   	final int dotCount = getDotCountInString(packageClassName);
-			   	for (int i = 1; i <= dotCount; i++) {
-			   		final int index = getDotIndexFromEndOfString(packageClassName, i);
-			    	if (index >= 0) {
-		    		    final String packageName = packageClassName.substring(0, index);
-		    		    final String classNamePart = packageClassName.substring(index + 1);
-		    		    
-		    		    final String classNameFile;
-		    		    final String className;
-		    		    
-		    		    final int fileIndex = classNamePart.indexOf(".");
-		    		    if (fileIndex >= 0) {
-		    		    	classNameFile = classNamePart.substring(0, fileIndex);
-		    		    	className = classNamePart.substring(fileIndex +  1);	
-		    		    }
-		    		    else {
-		    		    	classNameFile = classNamePart;
-		    		    	className = classNamePart;
-		    		    }
-		    		    
-		    		    log.verbose("resolveUsePackageDotClassName: [" + description + "] try packageName=" + 
-		    		                packageName + ", classNameFile=" + classNameFile);
-		    		    
-		    		    final PackageResolveResult result = packageResolveCallback.onPackageResolveCallback(packageName, classNameFile);
-		    		    if (result.isSuccess()) {    			
-		    			    addUniquePathFileToList(result.getPathFile(), pathFileList);
-		    			
-			    		    packageClassData.setPackageName(packageName);
-        	        	    packageClassData.setClassName(className);
-			    		    packageClassData.setResolved(true);
-			    		
-			    		    log.info ("resolveUsePackageDotClassName: [" + description + "] " + 
-			    		              "resolved=true, pathFile=" + result.getPathFile() + 
-			    		              ", packageName=" + packageName + ", className=" + className); // NOSONAR
-		    			
-			    	    	break;
-			   		    }
-			    	}
-			   	}
-		    }
+			// Split into parts gradually build up string working
+	     	// forwards until a class found - the primary class
+		   	// ignore any inner class after that
+		   	final int dotCount = getDotCountInString(packageClassName);
+		   	for (int i = 1; i <= dotCount; i++) {
+		   		final int index = getDotIndexFromEndOfString(packageClassName, i);
+		    	if (index >= 0) {
+		   		    final String packageName = packageClassName.substring(0, index);
+		   		    final String classNamePart = packageClassName.substring(index + 1);
+		   		    
+		   		    final String classNameFile;
+		   		    final String className;
+		   		    
+		   		    final int fileIndex = classNamePart.indexOf(".");
+		   		    if (fileIndex >= 0) {
+		   		    	classNameFile = classNamePart.substring(0, fileIndex);
+		   		    	className = classNamePart.substring(fileIndex +  1);	
+		   		    }
+		   		    else {
+		   		    	classNameFile = classNamePart;
+		   		    	className = classNamePart;
+		   		    }
+		   		    
+		   		    log.verbose("resolveUsePackageDotClassName: [" + description + "] try packageName=" + 
+		   		                packageName + ", classNameFile=" + classNameFile);
+		   		    
+		   		    final PackageResolveResult result = packageResolveCallback.onPackageResolveCallback(packageName, classNameFile);
+		   		    if (result.isSuccess()) {    			
+		   			    addUniquePathFileToList(result.getPathFile(), pathFileList);
+		   			
+		    		    packageClassData.setPackageName(packageName);
+                	    packageClassData.setClassName(className);
+		    		    packageClassData.setResolved(true);
+		    		
+		    		    log.info ("resolveUsePackageDotClassName: [" + description + "] " + 
+		    		              "resolved=true, pathFile=" + result.getPathFile() + 
+		    		              ", packageName=" + packageName + ", className=" + className +
+		    		              " return true."); // NOSONAR
+		   			
+		    	    	return true;
+			 		}
+			    }
+			}
 		}
 		
-		log.verbose ("resolveUsePackageDotClassName: [" + description + "] Done.");
+		log.verbose ("resolveUsePackageDotClassName: [" + description + "] return false.");
+		return false;
 	}
 	
 	/**
@@ -224,50 +262,52 @@ public class PackageResolve {
 	 * exact end of imported string class name to that referenced
 	 * in the defined class.
 	 *
-	 * @param classDefinitionData
+	 * @param importList
+	 * @param packageClassData
 	 * @param packageResolveCallback
 	 * @param pathFileList
+	 * 
+	 * @return True if resolved, false if not
 	 */
-	private void resolveUseClassNameImports(final ClassDefinitionData classDefinitionData,
-			                                final PackageResolveCallback packageResolveCallback,
-                                            final List<String> pathFileList) {
+	private boolean resolveUseClassNameImports(final List<ImportData> importList,
+			                                   final PackageClassData packageClassData,
+			                                   final PackageResolveCallback packageResolveCallback,
+                                               final List<String> pathFileList) {
 
 		final String description = packageResolveCallback.onPackgeResolveDescription();		
 		log.verbose("resolveUseClassNameImports: [" + description + "] Called...");
 		
-		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			if (! packageClassData.isResolved()) {				
-				final String className = packageClassData.getClassName();
-				log.verbose("resolveUseClassNameImports: [" + description + "] try className=" + className);
+		final String className = packageClassData.getClassName();
+		log.verbose("resolveUseClassNameImports: [" + description + "] try className=" + className);
 		
-		        for (final ImportData importData : classDefinitionData.getImportList()) {    			
-			        if (importData.getImportType() == ImportType.CLASS_NAME) {
+	    for (final ImportData importData : importList) {    			
+		    if (importData.getImportType() == ImportType.CLASS_NAME) {
 
-			            if (importData.getImportName().endsWith("." + className)) {
-				            final int index = importData.getImportName().indexOf("." + className);
-				            final String packageName = importData.getImportName().substring(0,  index);
+			    if (importData.getImportName().endsWith("." + className)) {
+				    final int index = importData.getImportName().indexOf("." + className);
+				    final String packageName = importData.getImportName().substring(0,  index);
 
-				            log.verbose("resolveUseClassNameImports: [" + description + "] try packageName=" +
-			        			        packageName);
+				    log.verbose("resolveUseClassNameImports: [" + description + "] try packageName=" +
+			                    packageName);
 
-				            final PackageResolveResult result = packageResolveCallback.onPackageResolveCallback(packageName, className);
-				    		if (result.isSuccess()) {
-				    			addUniquePathFileToList(result.getPathFile(), pathFileList);
-				            	packageClassData.setPackageName(packageName);
-					       	    packageClassData.setResolved(true);
+				    final PackageResolveResult result = packageResolveCallback.onPackageResolveCallback(packageName, className);
+				    if (result.isSuccess()) {
+				    	addUniquePathFileToList(result.getPathFile(), pathFileList);
+				       	packageClassData.setPackageName(packageName);
+			    	    packageClassData.setResolved(true);
 
-				       	        log.info("resolveUseClassNameImports: [" + description + "] " +
-				       	                 "resolved=true, packageName=" + packageName + // NOSONAR
-				       	                 ", className=" + className);
-				       	        break;
-				    		}
-				        }
-			        }
-		        }
+				        log.info("resolveUseClassNameImports: [" + description + "] " +
+				                 "resolved=true, packageName=" + packageName + // NOSONAR
+				                 ", className=" + className + " return true.");
+				       	return true;
+				    }
+				}
 			}
 		}
 		
-		log.verbose("resolveUseClassNameImports: [" + description + "] Done.");
+		log.verbose("resolveUseClassNameImports: [" + description + "] return false.");
+		
+		return false;
 	}
 
 	/**
@@ -275,121 +315,141 @@ public class PackageResolve {
 	 * using import list with imported type of WILDCARD, append
 	 * class name onto the end
 	 * 
-	 * @param classDefinitionData
+	 * @param importList
+	 * @param packageClassData
 	 * @param packageResolveCallback
 	 * @param pathFileList
+	 * 
+	 * @return True if resolved, false if not
 	 */
-	private void resolveUseWildCardImports(final ClassDefinitionData classDefinitionData,
-	                                       final PackageResolveCallback packageResolveCallback,
-	                                       final List<String> pathFileList) {
+	private boolean resolveUseWildCardImports(final List<ImportData> importList,
+			                                  final PackageClassData packageClassData,
+	                                          final PackageResolveCallback packageResolveCallback,
+	                                          final List<String> pathFileList) {
 
 		final String description = packageResolveCallback.onPackgeResolveDescription();
 		log.verbose ("resolveUseWildCardImports: [" + description + "] Called...");
-		
-		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			if (! packageClassData.isResolved()) {
-				final String className = packageClassData.getClassName();
-				log.verbose ("resolveUseWildCardImports: [" + description + "] try className=" + className);
 				
-		        for (final ImportData importData : classDefinitionData.getImportList()) {
-			        if (importData.getImportType() == ImportType.WILDCARD) {
-			        	final PackageResolveResult result = packageResolveCallback.onPackageResolveCallback(importData.getImportName(), className);
-			    		if (result.isSuccess()) {	
-			    			addUniquePathFileToList(result.getPathFile(), pathFileList);
-                            final String packageName = importData.getImportName();			    		
-			            	packageClassData.setPackageName(packageName);
-				       	    packageClassData.setResolved(true);
+		final String className = packageClassData.getClassName();
+		log.verbose ("resolveUseWildCardImports: [" + description + "] try className=" + className);
+				
+		for (final ImportData importData : importList) {
+			if (importData.getImportType() == ImportType.WILDCARD) {
+			    final PackageResolveResult result = 
+			    	packageResolveCallback.onPackageResolveCallback(importData.getImportName(), className);
+			    
+			    if (result.isSuccess()) {	
+			    	addUniquePathFileToList(result.getPathFile(), pathFileList);
+                            
+			    	final String packageName = importData.getImportName();			    		
+			        packageClassData.setPackageName(packageName);
+				    packageClassData.setResolved(true);
 				       	    
-				       	    log.info ("resolveUseWildCardImports: [" + description + "] " + 
-				       	              "resolved=true, packageName=" + packageName + 
-				       	              ", className=" + className);
-				       	    break;
-			    		}
-			        }
-		        }
+				    log.info ("resolveUseWildCardImports: [" + description + "] " + 
+				              "resolved=true, packageName=" + packageName + 
+				              ", className=" + className +" return true.");
+				    return true;
+			    }
 			}
 		}
 		
-		log.verbose ("resolveUseWildCardImports: [" + description + "] Done.");
+		log.verbose ("resolveUseWildCardImports: [" + description + "] return false.");
+		
+		return false;
 	}
 
 	/**
 	 * Resolve by testing primary class name and package name in the class definition
 	 * 
-	 * @param classDefinitionData
+	 * @param packageName
+	 * @param primaryClassName
+	 * @param packageClassData
+	 * 
+	 * @return true if resolved, false if not
 	 */
-	private void resolveUsePrimaryClassName(final ClassDefinitionData classDefinitionData) {
+	private boolean resolveUsePrimaryClassName(final String packageName,
+			                                   final String primaryClassName,
+			                                   final PackageClassData packageClassData) {
 		log.verbose("resolveUsePrimaryClassName: Called...");
 		
-		final String className = classDefinitionData.getPrimaryClassName();
-		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			if (! packageClassData.isResolved() &&
-		        packageClassData.getClassName().equals(className)) {
-		        packageClassData.setPackageName(classDefinitionData.getPackageName());
-		        packageClassData.setResolved(true);
+		if (packageClassData.getClassName().equals(primaryClassName)) {
+		    packageClassData.setPackageName(packageName);
+		    packageClassData.setResolved(true);
 		        
-		        log.info("resolveUsePrimaryClassName: " + 
-		                 "resolved=true, packageName = " + classDefinitionData.getPackageName() +
-		                 ", className=" + className);
-			}
+		    log.info("resolveUsePrimaryClassName: " + 
+		             "resolved=true, packageName = " + packageName +
+		             ", className=" + primaryClassName + " return true.");
+		    
+		    return true;
 		}
+
+		log.verbose("resolveUsePrimaryClassName: return false.");
 		
-		log.verbose("resolveUsePrimaryClassName: Done.");
+		return false;
 	}
 	
 	/**
 	 * Resolve by testing main class name and package name in the class definition
 	 * 
-	 * @param classDefinitionData
+	 * @param packageName
+	 * @param packageClassData
+	 * 
+	 * @return True if resolved, false if not
 	 */
-	private void resolveUseSecondaryClassNameList(final ClassDefinitionData classDefinitionData) {
+	private boolean resolveUseSecondaryClassNameList(final String packageName,
+			                                         final Set<String> secondaryClassNameHashSet,
+			                                         final PackageClassData packageClassData) {
 		log.verbose("resolveUseSecondaryClassNameList: Called...");
 		
-		final List<String> classNameList = classDefinitionData.getSecondaryClassNameList();
-		for (final String className : classNameList) {
-		    for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			    if (! packageClassData.isResolved() &&
-		            packageClassData.getClassName().equals(className)) {
-		            packageClassData.setPackageName(classDefinitionData.getPackageName());
-		            packageClassData.setResolved(true);
+		if (secondaryClassNameHashSet.contains(packageClassData.getClassName())) {
+			    	
+		    packageClassData.setPackageName(packageName);
+		    packageClassData.setResolved(true);
 		        
-		            log.info("resolveUseSecondaryClassNameList: " +
-		                     "resolved=true, packageName = " + classDefinitionData.getPackageName() +
-		                     ", className=" + className);
-			    }
-		    }
+		    log.info("resolveUseSecondaryClassNameList: " +
+		             "resolved=true, packageName = " + packageName +
+                     ", className=" + packageClassData.getClassName() +
+                     " return true.");
+		    
+		    return true;
 		}
 
-		log.verbose("resolveUseSecondaryClassNameList: Done.");
+		log.verbose("resolveUseSecondaryClassNameList: return false.");
+		
+		return false;
 	}
 
 	/**
 	 * Resolve by looking at java.lang default package and reflection.
      *
-	 * @param classDefinitionData
+	 * @param packageClassData
+	 * 
+	 * @return True if resolved, false if not
 	 */
-	private void resolveUseJavaLangPackage(final ClassDefinitionData classDefinitionData) {
+	private boolean resolveUseJavaLangPackage(final PackageClassData packageClassData) {
 		log.verbose("resolveUseJavaLangPackage: Called...");
 		
-		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			if (! packageClassData.isResolved()) {
-				final String className = packageClassData.getClassName();
-				log.verbose("resolveUseJavaLangPackage: packageName=" + 
-				            JAVA_LANG_PACKAGE_NAME + ". className=" + className);
+		final String className = packageClassData.getClassName();
+		log.verbose("resolveUseJavaLangPackage: packageName=" + 
+		            JAVA_LANG_PACKAGE_NAME + ". className=" + className);
 				
-				final PackageResolveResult result = packageResolveOnClassPath.onPackageResolveCallback(JAVA_LANG_PACKAGE_NAME, className);
-	    		if (result.isSuccess()) {
-	                packageClassData.setPackageName(JAVA_LANG_PACKAGE_NAME);
-				    packageClassData.setResolved(true);
+		final PackageResolveResult result = 
+			packageResolveOnClassPath.onPackageResolveCallback(JAVA_LANG_PACKAGE_NAME, className);
+	    
+		if (result.isSuccess()) {
+	        packageClassData.setPackageName(JAVA_LANG_PACKAGE_NAME);
+		    packageClassData.setResolved(true);
 				    
-				    log.info("resolveUseJavaLangPackage: " +
-				             "resolved=true, packageName=" + JAVA_LANG_PACKAGE_NAME +
-				             ", className=" + className);
-		        }
-			}
+		    log.info("resolveUseJavaLangPackage: " +
+		             "resolved=true, packageName=" + JAVA_LANG_PACKAGE_NAME +
+		             ", className=" + className + " return true.");
+		    
+		    return true;
 		}
 		
-		log.verbose("resolveUseJavaLangPackage: Done.");
+		log.verbose("resolveUseJavaLangPackage: return false.");
+		
+		return false;
 	}
 	
 	/**
@@ -397,48 +457,52 @@ public class PackageResolve {
      * fully resolved to start with, need to determine the
      * package and class name part allowing for nested inner classes
 	 * 
-	 * @param classDefinitionData
+	 * @param defaultPackageName
+	 * @param packageClassData
 	 * @param packageResolveCallback
 	 * @param pathFileList
+	 * 
+	 * @return true if resolved, false if not
 	 */
-	private void resolveUseClassPackage(final ClassDefinitionData classDefinitionData, // NOSONAR
-	    		                        final PackageResolveCallback packageResolveCallback,
-		    	                        final List<String> pathFileList) {
+	private boolean resolveUseClassPackage(final String defaultPackageName,
+			                               final PackageClassData packageClassData,
+			                               final PackageResolveCallback packageResolveCallback,
+		    	                           final List<String> pathFileList) {
 		
 		final String description = packageResolveCallback.onPackgeResolveDescription();
-		final String defaultPackageName = classDefinitionData.getPackageName();
 		
 		log.verbose ("resolveUseClassPackage: [" + description + "] defaultPackageName=" + defaultPackageName);
 
-		for (final PackageClassData packageClassData : classDefinitionData.getPackageClassList()) {
-			final String packageClassName = packageClassData.getClassName();
-		    
-		    if (! packageClassData.isResolved()) {
-		        
-		    	String primaryClassName = packageClassName;
-			    final int index = packageClassName.indexOf(".");
-			   	if (index >= 0) {
-			   		primaryClassName = packageClassName.substring(0, index);
-			   	}
+		final String packageClassName = packageClassData.getClassName();
+		            
+		String primaryClassName = packageClassName;
+	    final int index = packageClassName.indexOf(".");
+	   	if (index >= 0) {
+	   		primaryClassName = packageClassName.substring(0, index);
+	   	}
 			   	
-			   	log.verbose("resolveUseClassPackage: [" + description + "] defaultPackageName=" + 
-		                    defaultPackageName + ", primaryClassName=" + primaryClassName);
+		log.verbose("resolveUseClassPackage: [" + description + "] defaultPackageName=" + 
+		            defaultPackageName + ", primaryClassName=" + primaryClassName);
 		    		    
-		    	final PackageResolveResult result = packageResolveCallback.onPackageResolveCallback(defaultPackageName, primaryClassName);
-		    	if (result.isSuccess()) {    			
-		    		addUniquePathFileToList(result.getPathFile(), pathFileList);
+		final PackageResolveResult result = 
+			packageResolveCallback.onPackageResolveCallback(defaultPackageName, primaryClassName);
+		 
+		if (result.isSuccess()) {    			
+		    addUniquePathFileToList(result.getPathFile(), pathFileList);
 		    			
-			    	packageClassData.setPackageName(defaultPackageName);
-        	        packageClassData.setClassName(primaryClassName);
-			    	packageClassData.setResolved(true);
+			packageClassData.setPackageName(defaultPackageName);
+        	packageClassData.setClassName(primaryClassName);
+			packageClassData.setResolved(true);
 			    		
-			    	log.info ("resolveUseClassPackage: [" + description + "] " +  
-			                  "resolved=true, pathFile=" + result.getPathFile() + 
-			                  ", packageName=" + defaultPackageName + ", className=" + primaryClassName);		    			
-			    }
-		   	}
-		}
+			log.info ("resolveUseClassPackage: [" + description + "] " +  
+	                  "resolved=true, pathFile=" + result.getPathFile() + 
+			          ", packageName=" + defaultPackageName + 
+			          ", className=" + primaryClassName + " return true.");
+			
+			return true;
+	    }
 		
-		log.verbose ("resolveUseClassPackage: [" + description + "] Done.");
+		log.verbose ("resolveUseClassPackage: [" + description + "] return false.");
+		return false;
 	}
 }

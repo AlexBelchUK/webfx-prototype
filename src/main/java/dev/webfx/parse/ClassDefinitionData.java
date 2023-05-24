@@ -1,7 +1,9 @@
 package dev.webfx.parse;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Alexander Belch
@@ -14,9 +16,9 @@ public class ClassDefinitionData {
     private final List<ImportData> importList;
     
     private String primaryClassName;
-    private final List<String> secondaryClassNameList;
+    private final Set<String> secondaryClassNameHashSet;
     
-    private final List<String> genericList;
+    private final Set<String> genericHashSet;
     
     private final List<PackageClassData> packageClassList;
     
@@ -28,8 +30,8 @@ public class ClassDefinitionData {
 	public ClassDefinitionData(final String pathFile) {
 		this.pathFile = pathFile;
 		this.importList = new ArrayList<>();
-		this.secondaryClassNameList = new ArrayList<>();
-		this.genericList = new ArrayList<>();
+		this.secondaryClassNameHashSet = new HashSet<>();
+		this.genericHashSet = new HashSet<>();
 		this.packageClassList = new ArrayList<>();
 	}
 	
@@ -62,21 +64,23 @@ public class ClassDefinitionData {
 	}
 	
 	/**
-	 * @return the generic name list
+	 * Add a type name to the generic hash set
+	 * 
+	 * @param typeName The type name to store in the set
 	 */
-	public List<String> getGenericList() {
-		return genericList;
+	public void addTypeNameToGenericHashSet(final String typeName) {
+		genericHashSet.add(typeName);
 	}
-	
+
 	/**
 	 * Test if class name is actually a generic type <T> label
 	 * 
 	 * @param className Class name to test
 	 * 
-	 * @return True if in the generic list, false if not
+	 * @return True if in the generic hash set, false if not
 	 */
 	public boolean isGenericType(final String className) {
-		return genericList.contains(className);
+		return genericHashSet.contains(className);
 	}
 	
 	/**
@@ -92,21 +96,23 @@ public class ClassDefinitionData {
 	public void setPrimaryClassName(String primaryClassName) {
 		this.primaryClassName = primaryClassName;
 	}
-	
+
 	/**
-	 * @return the secondaryClassNameList
+	 * Return the secondary class name set collection
+	 * 
+	 * @return Secondary class name set collection
 	 */
-	public List<String> getSecondaryClassNameList() {
-		return secondaryClassNameList;
+	public Set<String> getSecondaryClassNameHashSet() {
+		return secondaryClassNameHashSet;
 	}
 
 	/**
-	 * Add a non primary class name to the secondary class name list
+	 * Add a secondary class name to the secondry class set collection
 	 * 
-	 * @param secondaryClassName the secondaryClassName to add
+	 * @param className The class name to add to the secondary class set collection
 	 */
-	public void addClassNameToSecondaryClassNameList(String secondaryClassName) {
-		secondaryClassNameList.add(secondaryClassName);
+	public void addClassNameToSecondaryClassNameHashSet(final String className) {
+		secondaryClassNameHashSet.add(className);
 	}
 
 	/**
