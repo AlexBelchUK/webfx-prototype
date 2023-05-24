@@ -124,7 +124,7 @@ public class Processor {
 		log.info ("package: " + classDefinitionData.getPackageName());
 		log.info ("primaryClass: " + classDefinitionData.getPrimaryClassName());
 		
-		for (final String secondaryClass : classDefinitionData.getSecondaryClassNameList()) {
+		for (final String secondaryClass : classDefinitionData.getSecondaryClassNameHashSet()) {
 			log.info ("secondaryClass: " + secondaryClass);
 		}
 		

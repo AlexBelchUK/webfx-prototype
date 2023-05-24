@@ -219,7 +219,7 @@ public class JavaParse {
         	log.verbose ("processClassTree: primaryClassName=" + className);
         }
     	else {
-    		classDefinitionData.addClassNameToSecondaryClassNameList(className);
+    		classDefinitionData.addClassNameToSecondaryClassNameHashSet(className);
     		log.verbose ("processClassTree: Add secondaryClassName=" + className);
     	}
 
@@ -827,8 +827,8 @@ public class JavaParse {
 		log.verbose("processTypeParameterTree: " + typeParameterTree.getKind());
 		
 		final String typeName = typeParameterTree.getName().toString();
-		classDefinitionData.getGenericList().add(typeName);
-		
+		classDefinitionData.addTypeNameToGenericHashSet(typeName);
+
 		for (final Tree tree : typeParameterTree.getBounds()) { 
 			treeStack.push(tree);
 			log.verbose("processTypeParameterTree: [Bounds] Skip=" + tree.getKind() + ", " + tree);
